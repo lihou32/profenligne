@@ -3,21 +3,35 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bot, Send, User, ImagePlus, Sparkles } from "lucide-react";
+import { Bot, Send, User, ImagePlus, Sparkles, X } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import { toast } from "sonner";
 
-type Message = { role: "user" | "assistant"; content: string };
+type MessageContent =
+  | { type: "text"; text: string }
+  | { type: "image_url"; image_url: { url: string } };
+
+type Message = {
+  role: "user" | "assistant";
+  content: string;
+  imageUrl?: string;
+};
+
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat`;
 
 export default function AITutor() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
       content:
-        "Bonjour ! 👋 Je suis votre assistant IA. Je peux vous aider avec vos devoirs, expliquer des concepts ou résoudre des exercices. Comment puis-je vous aider aujourd'hui ?",
+        "Bonjour ! 👋 Je suis votre assistant IA. Je peux vous aider avec vos devoirs, expliquer des concepts ou résoudre des exercices. Envoyez-moi une photo de votre devoir ou posez votre question !",
     },
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -25,25 +39,138 @@ export default function AITutor() {
     }
   }, [messages]);
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("L'image ne doit pas dépasser 5 Mo");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setImagePreview(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
   const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
-    const userMsg: Message = { role: "user", content: input };
+    if ((!input.trim() && !imagePreview) || isLoading) return;
+
+    const userMsg: Message = {
+      role: "user",
+      content: input || (imagePreview ? "Analyse cette image" : ""),
+      imageUrl: imagePreview || undefined,
+    };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
+    setImagePreview(null);
     setIsLoading(true);
 
-    // Placeholder — will be replaced by Lovable AI edge function
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content:
-            "L'intégration avec Lovable AI sera activée dans la Phase 4. Pour l'instant, je suis un placeholder. 🤖",
+    // Build API messages with multimodal support
+    const apiMessages = messages
+      .concat(userMsg)
+      .filter((m) => m.content || m.imageUrl)
+      .map((m) => {
+        if (m.imageUrl) {
+          const parts: MessageContent[] = [];
+          if (m.content) parts.push({ type: "text", text: m.content });
+          parts.push({ type: "image_url", image_url: { url: m.imageUrl } });
+          return { role: m.role, content: parts };
+        }
+        return { role: m.role, content: m.content };
+      });
+
+    let assistantSoFar = "";
+    const upsertAssistant = (chunk: string) => {
+      assistantSoFar += chunk;
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (last?.role === "assistant" && last === prev[prev.length - 1] && prev.length > 1) {
+          return prev.map((m, i) =>
+            i === prev.length - 1 ? { ...m, content: assistantSoFar } : m
+          );
+        }
+        return [...prev, { role: "assistant" as const, content: assistantSoFar }];
+      });
+    };
+
+    try {
+      const resp = await fetch(CHAT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-      ]);
+        body: JSON.stringify({ messages: apiMessages }),
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ error: "Erreur réseau" }));
+        toast.error(err.error || "Erreur du service IA");
+        setIsLoading(false);
+        return;
+      }
+
+      if (!resp.body) throw new Error("No response body");
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let textBuffer = "";
+      let streamDone = false;
+
+      while (!streamDone) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        textBuffer += decoder.decode(value, { stream: true });
+
+        let newlineIndex: number;
+        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+          let line = textBuffer.slice(0, newlineIndex);
+          textBuffer = textBuffer.slice(newlineIndex + 1);
+
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          if (!line.startsWith("data: ")) continue;
+
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") {
+            streamDone = true;
+            break;
+          }
+
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            if (content) upsertAssistant(content);
+          } catch {
+            textBuffer = line + "\n" + textBuffer;
+            break;
+          }
+        }
+      }
+
+      // Final flush
+      if (textBuffer.trim()) {
+        for (let raw of textBuffer.split("\n")) {
+          if (!raw) continue;
+          if (raw.endsWith("\r")) raw = raw.slice(0, -1);
+          if (raw.startsWith(":") || raw.trim() === "") continue;
+          if (!raw.startsWith("data: ")) continue;
+          const jsonStr = raw.slice(6).trim();
+          if (jsonStr === "[DONE]") continue;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            if (content) upsertAssistant(content);
+          } catch {
+            /* ignore */
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Stream error:", e);
+      toast.error("Erreur de connexion à l'IA");
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -86,11 +213,24 @@ export default function AITutor() {
                       : "bg-muted"
                   }`}
                 >
-                  {msg.content}
+                  {msg.imageUrl && (
+                    <img
+                      src={msg.imageUrl}
+                      alt="Image envoyée"
+                      className="mb-2 max-h-48 rounded-lg object-contain"
+                    />
+                  )}
+                  {msg.role === "assistant" ? (
+                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    </div>
+                  ) : (
+                    msg.content
+                  )}
                 </div>
               </div>
             ))}
-            {isLoading && (
+            {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
               <div className="flex gap-3">
                 <div className="gradient-primary flex h-8 w-8 items-center justify-center rounded-full">
                   <Bot className="h-4 w-4 text-primary-foreground" />
@@ -105,6 +245,24 @@ export default function AITutor() {
           </div>
         </ScrollArea>
 
+        {imagePreview && (
+          <div className="border-t px-4 pt-3 pb-1">
+            <div className="relative inline-block">
+              <img
+                src={imagePreview}
+                alt="Aperçu"
+                className="h-20 rounded-lg object-contain border"
+              />
+              <button
+                onClick={() => setImagePreview(null)}
+                className="absolute -top-2 -right-2 rounded-full bg-destructive p-1 text-destructive-foreground"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="border-t p-4">
           <form
             onSubmit={(e) => {
@@ -113,7 +271,20 @@ export default function AITutor() {
             }}
             className="flex gap-2"
           >
-            <Button type="button" variant="outline" size="icon" className="shrink-0">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleImageSelect}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="shrink-0"
+              onClick={() => fileInputRef.current?.click()}
+            >
               <ImagePlus className="h-4 w-4" />
             </Button>
             <Input
@@ -125,7 +296,7 @@ export default function AITutor() {
             />
             <Button
               type="submit"
-              disabled={!input.trim() || isLoading}
+              disabled={(!input.trim() && !imagePreview) || isLoading}
               className="gradient-primary text-primary-foreground"
             >
               <Send className="h-4 w-4" />
