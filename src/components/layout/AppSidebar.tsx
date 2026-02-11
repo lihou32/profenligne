@@ -10,6 +10,7 @@ import {
   LogOut,
   GraduationCap,
   Shield,
+  Zap,
 } from "lucide-react";
 import {
   Sidebar,
@@ -26,6 +27,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const mainNav = [
   { title: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
@@ -59,16 +61,25 @@ export function AppSidebar() {
     ? `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || "Utilisateur"
     : "Utilisateur";
 
+  const initials = profile
+    ? `${(profile.first_name?.[0] || "").toUpperCase()}${(profile.last_name?.[0] || "").toUpperCase()}`
+    : "U";
+
   return (
     <Sidebar className="border-r-0">
-      <SidebarHeader className="p-4">
-        <Link to="/dashboard" className="flex items-center gap-3">
-          <div className="gradient-primary flex h-10 w-10 items-center justify-center rounded-xl">
+      <SidebarHeader className="p-5">
+        <Link to="/dashboard" className="flex items-center gap-3 group">
+          <div className="gradient-primary flex h-11 w-11 items-center justify-center rounded-xl glow transition-transform group-hover:scale-105">
             <GraduationCap className="h-6 w-6 text-primary-foreground" />
           </div>
           <div className="flex flex-col">
-            <span className="text-sm font-bold tracking-tight text-sidebar-foreground">PROF EN LIGNE</span>
-            <span className="text-[10px] text-sidebar-foreground/50">Plateforme de Tutorat</span>
+            <span className="text-sm font-bold tracking-tight text-sidebar-foreground font-display">
+              PROF EN LIGNE
+            </span>
+            <span className="text-[10px] font-medium text-sidebar-foreground/40 flex items-center gap-1">
+              <Zap className="h-2.5 w-2.5" />
+              Plateforme de Tutorat
+            </span>
           </div>
         </Link>
       </SidebarHeader>
@@ -77,19 +88,33 @@ export function AppSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-[10px] font-bold uppercase tracking-[0.15em] text-sidebar-foreground/30 px-3">
+            Menu Principal
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainNav.map((item) => (
-                <SidebarMenuItem key={item.path}>
-                  <SidebarMenuButton asChild isActive={location.pathname === item.path} tooltip={item.title}>
-                    <Link to={item.path}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {mainNav.map((item) => {
+                const isActive = location.pathname === item.path;
+                return (
+                  <SidebarMenuItem key={item.path}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive}
+                      tooltip={item.title}
+                      className={`rounded-xl mx-1 transition-all duration-200 ${
+                        isActive
+                          ? "gradient-primary text-primary-foreground glow"
+                          : "hover:bg-sidebar-accent/80"
+                      }`}
+                    >
+                      <Link to={item.path}>
+                        <item.icon className="h-4 w-4" />
+                        <span className="font-medium">{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -97,25 +122,48 @@ export function AppSidebar() {
         <SidebarSeparator />
 
         <SidebarGroup>
-          <SidebarGroupLabel>Autres</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-[10px] font-bold uppercase tracking-[0.15em] text-sidebar-foreground/30 px-3">
+            Autres
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {secondaryNav.map((item) => (
-                <SidebarMenuItem key={item.path}>
-                  <SidebarMenuButton asChild isActive={location.pathname === item.path} tooltip={item.title}>
-                    <Link to={item.path}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {secondaryNav.map((item) => {
+                const isActive = location.pathname === item.path;
+                return (
+                  <SidebarMenuItem key={item.path}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive}
+                      tooltip={item.title}
+                      className={`rounded-xl mx-1 transition-all duration-200 ${
+                        isActive
+                          ? "gradient-primary text-primary-foreground glow"
+                          : "hover:bg-sidebar-accent/80"
+                      }`}
+                    >
+                      <Link to={item.path}>
+                        <item.icon className="h-4 w-4" />
+                        <span className="font-medium">{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
               {hasRole("admin") && (
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={location.pathname === "/admin"} tooltip="Admin">
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location.pathname === "/admin"}
+                    tooltip="Admin"
+                    className={`rounded-xl mx-1 transition-all duration-200 ${
+                      location.pathname === "/admin"
+                        ? "gradient-primary text-primary-foreground glow"
+                        : "hover:bg-sidebar-accent/80"
+                    }`}
+                  >
                     <Link to="/admin">
                       <Shield className="h-4 w-4" />
-                      <span>Administration</span>
+                      <span className="font-medium">Administration</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -125,16 +173,28 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter>
+      <SidebarFooter className="p-3">
         <SidebarSeparator />
-        <div className="px-3 py-2">
-          <p className="truncate text-xs font-medium text-sidebar-foreground">{displayName}</p>
+        <div className="flex items-center gap-3 rounded-xl p-3 mt-2 bg-sidebar-accent/50">
+          <Avatar className="h-9 w-9 gradient-primary text-primary-foreground">
+            <AvatarFallback className="gradient-primary text-primary-foreground text-xs font-bold">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            <p className="truncate text-sm font-semibold text-sidebar-foreground">{displayName}</p>
+            <p className="truncate text-[10px] text-sidebar-foreground/40">En ligne</p>
+          </div>
         </div>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={handleSignOut} tooltip="Déconnexion">
+            <SidebarMenuButton
+              onClick={handleSignOut}
+              tooltip="Déconnexion"
+              className="rounded-xl mx-1 hover:bg-destructive/20 hover:text-destructive transition-colors"
+            >
               <LogOut className="h-4 w-4" />
-              <span>Déconnexion</span>
+              <span className="font-medium">Déconnexion</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

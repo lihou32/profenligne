@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { GraduationCap, Eye, EyeOff } from "lucide-react";
+import { GraduationCap, Eye, EyeOff, Sparkles } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
@@ -35,57 +35,73 @@ export default function Signup() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <div className="absolute inset-0 gradient-primary opacity-5" />
-      <Card className="glass-card relative w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-4 gradient-primary flex h-14 w-14 items-center justify-center rounded-2xl">
-            <GraduationCap className="h-8 w-8 text-primary-foreground" />
+    <div className="relative flex min-h-screen items-center justify-center p-4 overflow-hidden mesh-bg">
+      <div className="absolute -top-40 -left-40 h-96 w-96 rounded-full bg-info/10 blur-3xl float" />
+      <div className="absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-primary/10 blur-3xl float" style={{ animationDelay: '3s' }} />
+
+      <Card className="glass-card relative w-full max-w-md animate-scale-in">
+        <CardHeader className="text-center pb-2">
+          <div className="mx-auto mb-5 gradient-primary flex h-16 w-16 items-center justify-center rounded-2xl glow animate-bounce-subtle">
+            <GraduationCap className="h-9 w-9 text-primary-foreground" />
           </div>
-          <CardTitle className="text-2xl">Inscription</CardTitle>
-          <p className="text-sm text-muted-foreground">Créez votre compte Prof en Ligne</p>
+          <CardTitle className="text-3xl font-display gradient-text">Inscription</CardTitle>
+          <p className="text-sm text-muted-foreground mt-1">
+            Rejoignez <span className="font-semibold gradient-text">Prof en Ligne</span>
+          </p>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-4">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="firstName">Prénom</Label>
-                <Input id="firstName" placeholder="Jean" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
+                <Label htmlFor="firstName" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Prénom</Label>
+                <Input id="firstName" placeholder="Jean" value={firstName} onChange={(e) => setFirstName(e.target.value)} required className="h-11 rounded-xl bg-muted/50 border-border/50" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="lastName">Nom</Label>
-                <Input id="lastName" placeholder="Dupont" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
+                <Label htmlFor="lastName" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Nom</Label>
+                <Input id="lastName" placeholder="Dupont" value={lastName} onChange={(e) => setLastName(e.target.value)} required className="h-11 rounded-xl bg-muted/50 border-border/50" />
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="votre@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              <Label htmlFor="email" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Email</Label>
+              <Input id="email" type="email" placeholder="votre@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="h-11 rounded-xl bg-muted/50 border-border/50" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="role">Je suis</Label>
+              <Label htmlFor="role" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Je suis</Label>
               <Select value={role} onValueChange={setRole}>
-                <SelectTrigger><SelectValue placeholder="Sélectionnez votre rôle" /></SelectTrigger>
+                <SelectTrigger className="h-11 rounded-xl bg-muted/50 border-border/50">
+                  <SelectValue placeholder="Sélectionnez votre rôle" />
+                </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="student">Étudiant</SelectItem>
-                  <SelectItem value="tutor">Professeur / Tuteur</SelectItem>
+                  <SelectItem value="student">🎓 Étudiant</SelectItem>
+                  <SelectItem value="tutor">👨‍🏫 Professeur / Tuteur</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Mot de passe</Label>
+              <Label htmlFor="password" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Mot de passe</Label>
               <div className="relative">
-                <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
-                <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowPassword(!showPassword)}>
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required className="h-11 rounded-xl bg-muted/50 border-border/50 pr-10" />
+                <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 hover:bg-transparent" onClick={() => setShowPassword(!showPassword)}>
+                  {showPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
                 </Button>
               </div>
             </div>
-            <Button type="submit" className="w-full gradient-primary text-primary-foreground" disabled={isLoading}>
-              {isLoading ? "Création..." : "Créer mon compte"}
+            <Button type="submit" className="w-full h-12 rounded-xl gradient-primary text-primary-foreground font-semibold text-base btn-glow" disabled={isLoading}>
+              {isLoading ? (
+                <span className="flex items-center gap-2">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground" />
+                  Création...
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  Créer mon compte
+                </span>
+              )}
             </Button>
             <p className="text-center text-sm text-muted-foreground">
               Déjà un compte ?{" "}
-              <Link to="/login" className="font-medium text-primary hover:underline">Se connecter</Link>
+              <Link to="/login" className="font-semibold text-primary hover:text-primary/80 transition-colors">Se connecter</Link>
             </p>
           </form>
         </CardContent>
