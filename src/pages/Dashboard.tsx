@@ -1,3 +1,4 @@
+import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen, Clock, TrendingUp, Users, Video, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -24,14 +25,16 @@ const featuredTutors = [
 ];
 
 export default function Dashboard() {
+  const { profile } = useAuth();
+  const displayName = profile?.first_name || "Étudiant";
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Bonjour, Étudiant 👋</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Bonjour, {displayName} 👋</h1>
         <p className="text-muted-foreground">Voici un résumé de votre activité</p>
       </div>
 
-      {/* Stats */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
           <Card key={stat.label} className="glass-card">
@@ -40,9 +43,7 @@ export default function Dashboard() {
                 <div>
                   <p className="text-sm text-muted-foreground">{stat.label}</p>
                   <p className="text-2xl font-bold">{stat.value}</p>
-                  {stat.change && (
-                    <p className="text-xs text-success">{stat.change}</p>
-                  )}
+                  {stat.change && <p className="text-xs text-success">{stat.change}</p>}
                 </div>
                 <div className="gradient-primary flex h-10 w-10 items-center justify-center rounded-xl">
                   <stat.icon className="h-5 w-5 text-primary-foreground" />
@@ -54,7 +55,6 @@ export default function Dashboard() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Prochains cours */}
         <Card className="glass-card lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Prochains cours</CardTitle>
@@ -64,33 +64,22 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="space-y-3">
             {upcomingLessons.map((lesson) => (
-              <div
-                key={lesson.id}
-                className="flex items-center justify-between rounded-lg border border-border/50 p-3 transition-colors hover:bg-muted/50"
-              >
+              <div key={lesson.id} className="flex items-center justify-between rounded-lg border border-border/50 p-3 transition-colors hover:bg-muted/50">
                 <div className="flex items-center gap-3">
                   <div className="gradient-primary flex h-10 w-10 items-center justify-center rounded-lg">
                     <BookOpen className="h-5 w-5 text-primary-foreground" />
                   </div>
                   <div>
                     <p className="font-medium">{lesson.subject}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {lesson.tutor} · {lesson.date} à {lesson.time}
-                    </p>
+                    <p className="text-sm text-muted-foreground">{lesson.tutor} · {lesson.date} à {lesson.time}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge
-                    variant={lesson.status === "confirmed" ? "default" : "secondary"}
-                    className={lesson.status === "confirmed" ? "bg-success" : ""}
-                  >
+                  <Badge variant={lesson.status === "confirmed" ? "default" : "secondary"} className={lesson.status === "confirmed" ? "bg-success" : ""}>
                     {lesson.status === "confirmed" ? "Confirmé" : "En attente"}
                   </Badge>
                   <Button size="sm" variant="outline" asChild>
-                    <Link to={`/room/${lesson.id}`}>
-                      <Video className="mr-1 h-3 w-3" />
-                      Rejoindre
-                    </Link>
+                    <Link to={`/room/${lesson.id}`}><Video className="mr-1 h-3 w-3" />Rejoindre</Link>
                   </Button>
                 </div>
               </div>
@@ -98,27 +87,18 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Tuteurs recommandés */}
         <Card className="glass-card">
-          <CardHeader>
-            <CardTitle className="text-lg">Tuteurs populaires</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle className="text-lg">Tuteurs populaires</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             {featuredTutors.map((tutor) => (
-              <div
-                key={tutor.id}
-                className="flex items-center gap-3 rounded-lg border border-border/50 p-3 transition-colors hover:bg-muted/50"
-              >
-                <div className="gradient-primary flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-primary-foreground">
-                  {tutor.avatar}
-                </div>
+              <div key={tutor.id} className="flex items-center gap-3 rounded-lg border border-border/50 p-3 transition-colors hover:bg-muted/50">
+                <div className="gradient-primary flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-primary-foreground">{tutor.avatar}</div>
                 <div className="flex-1">
                   <p className="text-sm font-medium">{tutor.name}</p>
                   <p className="text-xs text-muted-foreground">{tutor.subject}</p>
                 </div>
                 <div className="flex items-center gap-1 text-sm text-warning">
-                  <Star className="h-3 w-3 fill-current" />
-                  {tutor.rating}
+                  <Star className="h-3 w-3 fill-current" />{tutor.rating}
                 </div>
               </div>
             ))}
