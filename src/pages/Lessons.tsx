@@ -1,25 +1,29 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BookOpen, Calendar, Clock, Video } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useLessons } from "@/hooks/useData";
+import { BookLessonDialog } from "@/components/lessons/BookLessonDialog";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+import type { Tables } from "@/integrations/supabase/types";
 
-const lessons = [
-  { id: 1, subject: "Mathématiques", tutor: "Dr. Martin", date: "2025-02-11", time: "14:00", duration: "1h", status: "upcoming", topic: "Intégrales et primitives" },
-  { id: 2, subject: "Physique", tutor: "Mme. Dupont", date: "2025-02-12", time: "10:00", duration: "1h30", status: "upcoming", topic: "Mécanique quantique" },
-  { id: 3, subject: "Anglais", tutor: "Mr. Smith", date: "2025-02-13", time: "16:00", duration: "1h", status: "pending", topic: "Business English" },
-  { id: 4, subject: "Mathématiques", tutor: "Dr. Martin", date: "2025-02-08", time: "14:00", duration: "1h", status: "completed", topic: "Suites numériques" },
-  { id: 5, subject: "Physique", tutor: "Mme. Dupont", date: "2025-02-06", time: "10:00", duration: "1h30", status: "completed", topic: "Thermodynamique" },
-];
-
-const statusConfig = {
-  upcoming: { label: "À venir", className: "bg-info" },
+const statusConfig: Record<string, { label: string; className: string }> = {
   pending: { label: "En attente", className: "bg-warning" },
+  confirmed: { label: "Confirmé", className: "bg-info" },
+  in_progress: { label: "En cours", className: "bg-primary" },
   completed: { label: "Terminé", className: "bg-success" },
+  cancelled: { label: "Annulé", className: "bg-muted-foreground" },
 };
 
 export default function Lessons() {
+  const { data: lessons, isLoading } = useLessons();
+
+  const upcoming = (lessons || []).filter((l) => ["pending", "confirmed", "in_progress"].includes(l.status));
+  const completed = (lessons || []).filter((l) => l.status === "completed");
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
@@ -27,41 +31,49 @@ export default function Lessons() {
           <h1 className="text-2xl font-bold tracking-tight">Mes Cours</h1>
           <p className="text-muted-foreground">Gérez vos cours et votre planning</p>
         </div>
-        <Button className="gradient-primary text-primary-foreground">
-          <Calendar className="mr-2 h-4 w-4" />
-          Réserver un cours
-        </Button>
+        <BookLessonDialog />
       </div>
 
       <Tabs defaultValue="all">
         <TabsList>
-          <TabsTrigger value="all">Tous</TabsTrigger>
-          <TabsTrigger value="upcoming">À venir</TabsTrigger>
-          <TabsTrigger value="completed">Terminés</TabsTrigger>
+          <TabsTrigger value="all">Tous ({(lessons || []).length})</TabsTrigger>
+          <TabsTrigger value="upcoming">À venir ({upcoming.length})</TabsTrigger>
+          <TabsTrigger value="completed">Terminés ({completed.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="all" className="mt-4 space-y-3">
-          {lessons.map((lesson) => (
+          {isLoading && <p className="text-center text-muted-foreground py-8">Chargement...</p>}
+          {!isLoading && (lessons || []).length === 0 && (
+            <Card className="glass-card">
+              <CardContent className="flex flex-col items-center gap-3 p-8">
+                <BookOpen className="h-12 w-12 text-muted-foreground/30" />
+                <p className="text-muted-foreground">Aucun cours pour le moment</p>
+                <BookLessonDialog />
+              </CardContent>
+            </Card>
+          )}
+          {(lessons || []).map((lesson) => (
             <LessonCard key={lesson.id} lesson={lesson} />
           ))}
         </TabsContent>
         <TabsContent value="upcoming" className="mt-4 space-y-3">
-          {lessons.filter(l => l.status !== "completed").map((lesson) => (
-            <LessonCard key={lesson.id} lesson={lesson} />
-          ))}
+          {upcoming.length === 0 && <p className="text-center text-muted-foreground py-8">Aucun cours à venir</p>}
+          {upcoming.map((lesson) => <LessonCard key={lesson.id} lesson={lesson} />)}
         </TabsContent>
         <TabsContent value="completed" className="mt-4 space-y-3">
-          {lessons.filter(l => l.status === "completed").map((lesson) => (
-            <LessonCard key={lesson.id} lesson={lesson} />
-          ))}
+          {completed.length === 0 && <p className="text-center text-muted-foreground py-8">Aucun cours terminé</p>}
+          {completed.map((lesson) => <LessonCard key={lesson.id} lesson={lesson} />)}
         </TabsContent>
       </Tabs>
     </div>
   );
 }
 
-function LessonCard({ lesson }: { lesson: typeof lessons[0] }) {
-  const status = statusConfig[lesson.status as keyof typeof statusConfig];
+function LessonCard({ lesson }: { lesson: Tables<"lessons"> }) {
+  const status = statusConfig[lesson.status] || statusConfig.pending;
+  const durationLabel = lesson.duration_minutes >= 60
+    ? `${Math.floor(lesson.duration_minutes / 60)}h${lesson.duration_minutes % 60 ? (lesson.duration_minutes % 60) + "min" : ""}`
+    : `${lesson.duration_minutes}min`;
 
   return (
     <Card className="glass-card transition-all hover:shadow-md">
@@ -72,25 +84,25 @@ function LessonCard({ lesson }: { lesson: typeof lessons[0] }) {
           </div>
           <div>
             <h3 className="font-semibold">{lesson.subject}</h3>
-            <p className="text-sm text-muted-foreground">{lesson.topic}</p>
+            <p className="text-sm text-muted-foreground">{lesson.topic || "—"}</p>
             <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
-                <Calendar className="h-3 w-3" /> {lesson.date}
+                <Calendar className="h-3 w-3" />
+                {format(new Date(lesson.scheduled_at), "dd MMM yyyy", { locale: fr })}
               </span>
               <span className="flex items-center gap-1">
-                <Clock className="h-3 w-3" /> {lesson.time} ({lesson.duration})
+                <Clock className="h-3 w-3" />
+                {format(new Date(lesson.scheduled_at), "HH:mm")} ({durationLabel})
               </span>
-              <span>avec {lesson.tutor}</span>
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <Badge className={status.className}>{status.label}</Badge>
-          {lesson.status === "upcoming" && (
+          {(lesson.status === "confirmed" || lesson.status === "in_progress") && (
             <Button size="sm" variant="outline" asChild>
               <Link to={`/room/${lesson.id}`}>
-                <Video className="mr-1 h-3 w-3" />
-                Rejoindre
+                <Video className="mr-1 h-3 w-3" />Rejoindre
               </Link>
             </Button>
           )}
