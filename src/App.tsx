@@ -3,6 +3,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/hooks/useAuth";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -27,27 +29,29 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
 
-          {/* App routes with sidebar layout */}
-          <Route element={<AppLayout />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/lessons" element={<Lessons />} />
-            <Route path="/live" element={<LiveConnect />} />
-            <Route path="/ai-tutor" element={<AITutor />} />
-            <Route path="/notifications" element={<Notifications />} />
-            <Route path="/help" element={<Help />} />
-            <Route path="/pricing" element={<Pricing />} />
-            <Route path="/admin" element={<AdminPanel />} />
-            <Route path="/room/:id" element={<LessonRoom />} />
-            <Route path="/report/:id" element={<LessonReport />} />
-          </Route>
+            {/* Protected routes with sidebar layout */}
+            <Route element={<AppLayout />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/lessons" element={<Lessons />} />
+              <Route path="/live" element={<LiveConnect />} />
+              <Route path="/ai-tutor" element={<AITutor />} />
+              <Route path="/notifications" element={<Notifications />} />
+              <Route path="/help" element={<Help />} />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminPanel /></ProtectedRoute>} />
+              <Route path="/room/:id" element={<LessonRoom />} />
+              <Route path="/report/:id" element={<LessonReport />} />
+            </Route>
 
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

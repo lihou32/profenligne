@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   BookOpen,
@@ -7,9 +7,9 @@ import {
   Bell,
   HelpCircle,
   CreditCard,
-  Settings,
   LogOut,
   GraduationCap,
+  Shield,
 } from "lucide-react";
 import {
   Sidebar,
@@ -24,6 +24,8 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 const mainNav = [
   { title: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
@@ -40,6 +42,22 @@ const secondaryNav = [
 
 export function AppSidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { signOut, profile, hasRole } = useAuth();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast.success("Déconnexion réussie");
+      navigate("/login");
+    } catch {
+      toast.error("Erreur lors de la déconnexion");
+    }
+  };
+
+  const displayName = profile
+    ? `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || "Utilisateur"
+    : "Utilisateur";
 
   return (
     <Sidebar className="border-r-0">
@@ -49,12 +67,8 @@ export function AppSidebar() {
             <GraduationCap className="h-6 w-6 text-primary-foreground" />
           </div>
           <div className="flex flex-col">
-            <span className="text-sm font-bold tracking-tight text-sidebar-foreground">
-              PROF EN LIGNE
-            </span>
-            <span className="text-[10px] text-sidebar-foreground/50">
-              Plateforme de Tutorat
-            </span>
+            <span className="text-sm font-bold tracking-tight text-sidebar-foreground">PROF EN LIGNE</span>
+            <span className="text-[10px] text-sidebar-foreground/50">Plateforme de Tutorat</span>
           </div>
         </Link>
       </SidebarHeader>
@@ -68,11 +82,7 @@ export function AppSidebar() {
             <SidebarMenu>
               {mainNav.map((item) => (
                 <SidebarMenuItem key={item.path}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={location.pathname === item.path}
-                    tooltip={item.title}
-                  >
+                  <SidebarMenuButton asChild isActive={location.pathname === item.path} tooltip={item.title}>
                     <Link to={item.path}>
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
@@ -92,11 +102,7 @@ export function AppSidebar() {
             <SidebarMenu>
               {secondaryNav.map((item) => (
                 <SidebarMenuItem key={item.path}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={location.pathname === item.path}
-                    tooltip={item.title}
-                  >
+                  <SidebarMenuButton asChild isActive={location.pathname === item.path} tooltip={item.title}>
                     <Link to={item.path}>
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
@@ -104,6 +110,16 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+              {hasRole("admin") && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={location.pathname === "/admin"} tooltip="Admin">
+                    <Link to="/admin">
+                      <Shield className="h-4 w-4" />
+                      <span>Administration</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -111,13 +127,14 @@ export function AppSidebar() {
 
       <SidebarFooter>
         <SidebarSeparator />
+        <div className="px-3 py-2">
+          <p className="truncate text-xs font-medium text-sidebar-foreground">{displayName}</p>
+        </div>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Déconnexion">
-              <Link to="/login">
-                <LogOut className="h-4 w-4" />
-                <span>Déconnexion</span>
-              </Link>
+            <SidebarMenuButton onClick={handleSignOut} tooltip="Déconnexion">
+              <LogOut className="h-4 w-4" />
+              <span>Déconnexion</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
