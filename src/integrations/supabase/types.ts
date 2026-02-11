@@ -184,6 +184,33 @@ export type Database = {
         }
         Relationships: []
       }
+      room_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          room_id: string
+          sender_name: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          room_id: string
+          sender_name: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          room_id?: string
+          sender_name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       tutors: {
         Row: {
           created_at: string
@@ -235,6 +262,33 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      webrtc_signals: {
+        Row: {
+          created_at: string
+          id: string
+          room_id: string
+          sender_id: string
+          signal_data: Json
+          signal_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          room_id: string
+          sender_id: string
+          signal_data: Json
+          signal_type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          room_id?: string
+          sender_id?: string
+          signal_data?: Json
+          signal_type?: string
         }
         Relationships: []
       }
