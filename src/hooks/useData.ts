@@ -41,7 +41,10 @@ export function useUpdateLesson() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["lessons"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["lessons"] });
+      qc.invalidateQueries({ queryKey: ["tutor-lessons"] });
+    },
   });
 }
 
@@ -55,13 +58,117 @@ export function useTutors() {
         .from("tutors")
         .select("*, profiles!tutors_user_id_fkey(first_name, last_name, avatar_url)");
       if (error) {
-        // Fallback without join if FK name doesn't match
         const { data: fallback, error: err2 } = await supabase.from("tutors").select("*");
         if (err2) throw err2;
         return fallback;
       }
       return data;
     },
+  });
+}
+
+// ─── Tutor Profile (own) ────────────────────────────────
+
+export function useTutorProfile() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["tutor-profile", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tutors")
+        .select("*")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+// ─── Tutor Lessons (with student profile) ───────────────
+
+export function useTutorLessons() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["tutor-lessons", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("lessons")
+        .select("*")
+        .eq("tutor_id", user!.id)
+        .order("scheduled_at", { ascending: true });
+      if (error) throw error;
+
+      // Fetch student profiles
+      const studentIds = [...new Set((data || []).map((l) => l.student_id))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, first_name, last_name, avatar_url")
+        .in("user_id", studentIds);
+
+      const profileMap = new Map((profiles || []).map((p) => [p.user_id, p]));
+      return (data || []).map((l) => ({
+        ...l,
+        student_profile: profileMap.get(l.student_id) || null,
+      }));
+    },
+  });
+}
+
+// ─── Tutor Stats ────────────────────────────────────────
+
+export function useTutorStats() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["tutor-stats", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+      const [lessonsRes, tutorRes, reviewsRes] = await Promise.all([
+        supabase.from("lessons").select("*").eq("tutor_id", user!.id).gte("scheduled_at", startOfMonth),
+        supabase.from("tutors").select("hourly_rate, rating").eq("user_id", user!.id).maybeSingle(),
+        supabase.from("tutor_reviews").select("rating").eq("tutor_id", user!.id),
+      ]);
+
+      const lessons = lessonsRes.data || [];
+      const completedThisMonth = lessons.filter((l) => l.status === "completed");
+      const hourlyRate = Number(tutorRes.data?.hourly_rate) || 0;
+      const monthlyRevenue = completedThisMonth.reduce((s, l) => s + (l.duration_minutes / 60) * hourlyRate, 0);
+      const uniqueStudents = new Set(lessons.map((l) => l.student_id)).size;
+
+      const reviews = reviewsRes.data || [];
+      const avgRating = reviews.length
+        ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
+        : tutorRes.data?.rating || 0;
+
+      return {
+        monthlyRevenue: Math.round(monthlyRevenue),
+        monthlyLessons: completedThisMonth.length,
+        avgRating,
+        activeStudents: uniqueStudents,
+      };
+    },
+  });
+}
+
+// ─── Update Tutor Status ────────────────────────────────
+
+export function useUpdateTutorStatus() {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (status: string) => {
+      const { error } = await supabase
+        .from("tutors")
+        .update({ status })
+        .eq("user_id", user!.id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["tutor-profile"] }),
   });
 }
 
