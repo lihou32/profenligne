@@ -1,89 +1,158 @@
-# Plan de refonte : QCM post-session, suppression AI Tutor, Pricing, et Avis Profs
 
-## 1. QCM et Carte Mentale IA en fin de visio
 
-Quand un cours se termine (clic sur "Raccrocher"), au lieu de rediriger directement vers `/lessons`, une page de **rapport enrichi** s'affiche avec :
+# Refonte Globale : Interface Professeur, Auth Sociale, Mot de Passe Oublie, et Paiements Stripe
 
-- **QCM genere par IA** : L'edge function `ai-chat` est appelee avec le sujet et le topic du cours pour generer 5-10 questions a choix multiples. L'eleve repond et voit son score.
-- **Carte mentale** : L'IA genere une structure JSON (concepts + liens) et un composant React la rend visuellement sous forme d'arbre/carte mentale interactive.
+## Vue d'ensemble
+
+Transformation majeure de la plateforme en s'inspirant des geants du secteur (Superprof, Preply, Uber). Ce plan couvre 5 grands chantiers :
+
+1. **Authentification enrichie** (Google, Apple, mot de passe oublie)
+2. **Dashboard et interface professeur complete**
+3. **Sidebar adaptative selon le role**
+4. **Systeme de credits eleves (achat via Stripe)**
+5. **Interface de retrait d'argent pour les professeurs (Stripe Connect)**
+
+---
+
+## 1. Authentification enrichie
+
+### Connexion Google + Apple
+- Utilisation de l'integration Lovable Cloud geree (pas besoin de cles API manuelles)
+- Configuration via l'outil `configure-social-auth` pour generer le module `@lovable.dev/cloud-auth-js`
+- Ajout de boutons "Continuer avec Google" et "Continuer avec Apple" sur `Login.tsx` et `Signup.tsx`
+- Import de `lovable.auth.signInWithOAuth("google")` et `lovable.auth.signInWithOAuth("apple")`
+
+### Mot de passe oublie
+- Ajout d'un lien "Mot de passe oublie ?" sur `Login.tsx` sous le champ mot de passe
+- Creation d'une page `ForgotPassword.tsx` : saisie de l'email, appel a `supabase.auth.resetPasswordForEmail()`
+- Creation d'une page `ResetPassword.tsx` : saisie du nouveau mot de passe, appel a `supabase.auth.updateUser({ password })`
+- Ajout des routes `/forgot-password` et `/reset-password` dans `App.tsx`
 
 ### Fichiers concernes
-
-- `**supabase/functions/ai-chat/index.ts**` : Ajouter un mode `quiz` et `mindmap` qui utilise le tool calling pour extraire du JSON structure (questions QCM + arbre de concepts).
-- `**src/pages/LessonReport.tsx**` : Refonte complete pour afficher le QCM interactif et la carte mentale au lieu des donnees statiques actuelles.
-- `**src/pages/LessonRoom.tsx**` : Modifier `handleEndCall` pour rediriger vers `/report/{id}` avec le sujet/topic en query params.
-
----
-
-## 2. Suppression de la page AI Tutor
-
-- `**src/components/layout/AppSidebar.tsx**` : Retirer l'entree `AI Tutor` du tableau `mainNav` et le sparkle icon associe.
-- `**src/App.tsx**` : Retirer la route `/ai-tutor` et l'import de `AITutor`.
-- Le fichier `src/pages/AITutor.tsx` reste dans le projet mais n'est plus accessible.
+- `src/pages/Login.tsx` : boutons Google/Apple + lien mot de passe oublie
+- `src/pages/Signup.tsx` : boutons Google/Apple
+- `src/pages/ForgotPassword.tsx` (nouveau)
+- `src/pages/ResetPassword.tsx` (nouveau)
+- `src/hooks/useAuth.tsx` : ajout de `resetPassword` et `updatePassword`
+- `src/App.tsx` : nouvelles routes
 
 ---
 
-## 3. Mise a jour de la page Pricing
+## 2. Dashboard Professeur
 
-Refonte de `src/pages/Pricing.tsx` pour correspondre exactement au design de reference :
+Quand un utilisateur avec le role `tutor` arrive sur `/dashboard`, il voit une interface completement differente de l'eleve.
 
+### Composants du dashboard prof
+- **Banniere de bienvenue** avec nom + toggle "En ligne / Hors ligne" (bouton switch) qui met a jour `tutors.status`
+- **4 cartes de statistiques** :
+  - Revenus du mois (calcule depuis les lecons completees x tarif horaire)
+  - Cours donnes ce mois
+  - Note moyenne (depuis `tutor_reviews`)
+  - Eleves uniques ce mois
+- **Graphique de revenus** : courbe hebdomadaire avec Recharts (deja installe)
+- **Prochains cours** : liste des sessions confirmees avec nom de l'eleve, matiere, heure, et bouton "Demarrer"
+- **Demandes en attente** : lecons avec statut "pending" avec boutons Accepter / Refuser
 
-| Plan       | Prix       | Style                                                         |
-| ---------- | ---------- | ------------------------------------------------------------- |
-| Decouverte | 0EUR/mois  | Carte blanche, bouton outline                                 |
-| Pro        | 29EUR/mois | Bordure doree, badge "LE PLUS POPULAIRE", bouton violet plein |
-| Prestige   | 99EUR/mois | Bouton gradient orange/dore                                   |
+### Page Cours Professeur (`TutorLessons.tsx`)
+- Onglets : A venir / En attente / Historique
+- Pour chaque cours : nom de l'eleve (jointure profiles), matiere, date, statut
+- Actions : Accepter, Refuser, Demarrer le cours
 
-
-### Features par plan (d'apres la reference)
-
-- **Decouverte** : support email 48h, quiz de base. Pas de :  cours en direct, Club Prestige, certificats.
-- **Pro** : support 24h, quiz avances et tournois, certificats. Pas de : Club Prestige, correction devoirs < 30min.
-- **Prestige** : Tout Pro + Club Prestige, tuteurs elite 17h-22h, correction devoirs en direct, suivi parental, garantie "Satisfait ou Rembourse".
-
-Icones par plan : etoile (Decouverte), eclair (Pro), couronne (Prestige).
-
----
-
-## 4. Page d'avis des professeurs
-
-Nouvelle page `/reviews` accessible depuis la sidebar (section "Apprentissage").
-
-- `**src/pages/TutorReviews.tsx**` (nouveau) : Affiche la liste des tuteurs avec leurs notes, nombre d'avis, et commentaires des eleves. Design avec cards glass, etoiles, et avatars.
-- **Migration SQL** : Creer une table `tutor_reviews` (id, tutor_id, student_id, rating 1-5, comment, created_at) avec RLS pour que les eleves puissent lire tous les avis et ecrire les leurs.
-- `**src/hooks/useData.ts**` : Ajouter les hooks `useTutorReviews` et `useCreateReview`.
-- `**src/components/layout/AppSidebar.tsx**` : Ajouter "Avis Profs" dans `mainNav` avec l'icone `Star`.
-- `**src/App.tsx**` : Ajouter la route `/reviews`.
+### Fichiers concernes
+- `src/pages/TutorDashboard.tsx` (nouveau) : dashboard complet
+- `src/pages/TutorLessons.tsx` (nouveau) : gestion des cours
+- `src/pages/Dashboard.tsx` : wrapper conditionnel `hasRole("tutor") ? <TutorDashboard /> : <StudentDashboard />`
+- `src/pages/Lessons.tsx` : wrapper conditionnel similaire
 
 ---
 
-## 5. Alignement design avec les references
+## 3. Sidebar adaptative selon le role
 
-Ajustements dans les pages modifiees pour coller au style "Prof en ligne" :
+La sidebar detecte le role et affiche des menus differents.
 
-- Sidebar avec les categories PRINCIPAL / APPRENTISSAGE / GENERAL
-- Cards blanches avec coins arrondis sur fond violet
-- Badges colores (jaune pour Prestige, violet pour Pro)
-- Boutons gradient violet ou orange selon le contexte
+### Pour les professeurs :
+- **PRINCIPAL** : Tableau de bord, Mes Cours, Messages
+- **ACTIVITE** : Disponibilite (toggle en ligne), Mes Avis, Mes Revenus (page de retrait)
+- **GENERAL** : Aide, Administration (si admin)
 
-### Modifications sidebar
+### Pour les eleves (inchange) :
+- **PRINCIPAL** : Tableau de bord, Mes Lecons, Messages
+- **APPRENTISSAGE** : Cours en direct, Avis Profs, Club Prestige
+- **GENERAL** : Aide
 
-Reorganiser `AppSidebar.tsx` avec 3 groupes :
+### Fichier concerne
+- `src/components/layout/AppSidebar.tsx` : logique conditionnelle avec `hasRole("tutor")`
 
-- **PRINCIPAL** : Tableau de bord, Mes Lecons, Messages (notifications)
-- **APPRENTISSAGE** : Cours en direct, Trouver un prof (avis), Club Prestige (pricing)
-- **GENERAL** : Parametres, Aide
+---
+
+## 4. Systeme de credits pour les eleves (Stripe)
+
+### Principe
+Les eleves achetent des packs de credits (ex: 5 credits = 25EUR, 10 credits = 45EUR, 20 credits = 80EUR). 1 credit = 1 cours.
+
+### Migration SQL
+- Table `user_credits` : `id`, `user_id`, `balance` (integer), `updated_at`
+- Table `credit_transactions` : `id`, `user_id`, `amount`, `type` (purchase/usage/refund), `stripe_payment_id`, `created_at`
+- RLS : chaque user ne voit que ses propres donnees
+
+### Integration Stripe
+- Activation de Stripe via l'outil dedie
+- Edge function `create-checkout` : cree une session Stripe Checkout pour un pack de credits
+- Edge function `stripe-webhook` : ecoute les evenements `checkout.session.completed` et credite le compte de l'eleve
+- Page `BuyCredits.tsx` : affiche les packs disponibles avec boutons "Acheter" qui redirigent vers Stripe Checkout
+
+### Fichiers concernes
+- Migration SQL pour `user_credits` et `credit_transactions`
+- `supabase/functions/create-checkout/index.ts` (nouveau)
+- `supabase/functions/stripe-webhook/index.ts` (nouveau)
+- `src/pages/BuyCredits.tsx` (nouveau) : interface d'achat de credits
+- `src/hooks/useCredits.ts` (nouveau) : hooks pour solde et historique
+
+---
+
+## 5. Interface de retrait pour les professeurs (Stripe Connect)
+
+### Principe
+Les professeurs accumulent des gains quand ils donnent des cours. Ils peuvent demander un retrait vers leur compte bancaire.
+
+### Migration SQL
+- Table `tutor_earnings` : `id`, `tutor_id`, `lesson_id`, `amount`, `status` (pending/paid), `created_at`
+- Table `withdrawal_requests` : `id`, `tutor_id`, `amount`, `status` (pending/processing/completed/rejected), `stripe_transfer_id`, `created_at`
+- RLS : chaque tuteur ne voit que ses propres donnees
+
+### Integration Stripe Connect
+- Edge function `create-connect-account` : cree un compte Stripe Connect pour le prof
+- Edge function `request-withdrawal` : traite la demande de retrait
+- Page `TutorEarnings.tsx` : solde disponible, historique des gains par cours, bouton "Demander un retrait", historique des retraits
+
+### Fichiers concernes
+- Migration SQL pour `tutor_earnings` et `withdrawal_requests`
+- `supabase/functions/create-connect-account/index.ts` (nouveau)
+- `supabase/functions/request-withdrawal/index.ts` (nouveau)
+- `src/pages/TutorEarnings.tsx` (nouveau) : interface revenus et retraits
+- `src/hooks/useEarnings.ts` (nouveau) : hooks pour les gains
 
 ---
 
 ## Section technique - Ordre d'implementation
 
-1. Migration SQL pour `tutor_reviews`
-2. Modifier `AppSidebar.tsx` (retirer AI Tutor, ajouter Avis, reorganiser groupes)
-3. Modifier `App.tsx` (retirer route AI Tutor, ajouter route Reviews)
-4. Refondre `Pricing.tsx` avec les vrais prix et le design reference
-5. Creer `TutorReviews.tsx`
-6. Modifier `ai-chat/index.ts` pour supporter le mode quiz/mindmap
-7. Refondre `LessonReport.tsx` avec QCM interactif + carte mentale
-8. Modifier `LessonRoom.tsx` pour rediriger vers le rapport enrichi
-9. Ajouter hooks dans `useData.ts`
+### Phase 1 : Auth (pas de migration SQL)
+1. Configurer Google + Apple via l'outil `configure-social-auth`
+2. Modifier `Login.tsx` et `Signup.tsx` (boutons sociaux + mot de passe oublie)
+3. Creer `ForgotPassword.tsx` et `ResetPassword.tsx`
+4. Mettre a jour `useAuth.tsx` et `App.tsx`
+
+### Phase 2 : Interface Professeur (pas de migration SQL)
+5. Creer `TutorDashboard.tsx` avec stats, toggle, graphique, prochains cours
+6. Creer `TutorLessons.tsx` avec gestion des demandes
+7. Modifier `Dashboard.tsx` et `Lessons.tsx` (wrappers conditionnels)
+8. Adapter `AppSidebar.tsx` selon le role
+9. Ajouter hooks tuteur dans `useData.ts`
+
+### Phase 3 : Paiements Stripe
+10. Activer Stripe via l'outil dedie
+11. Migration SQL pour `user_credits`, `credit_transactions`, `tutor_earnings`, `withdrawal_requests`
+12. Creer les edge functions Stripe (checkout, webhook, connect, withdrawal)
+13. Creer `BuyCredits.tsx` et `TutorEarnings.tsx`
+14. Ajouter les routes et liens dans la sidebar
+
