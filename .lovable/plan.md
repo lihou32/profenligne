@@ -1,46 +1,89 @@
+# Plan de refonte : QCM post-session, suppression AI Tutor, Pricing, et Avis Profs
 
+## 1. QCM et Carte Mentale IA en fin de visio
 
-# Prof en Ligne — Plateforme de Tutorat en Ligne
+Quand un cours se termine (clic sur "Raccrocher"), au lieu de rediriger directement vers `/lessons`, une page de **rapport enrichi** s'affiche avec :
 
-## Vue d'ensemble
-Recréer l'application "Prof en Ligne" comme une plateforme de tutorat en ligne complète et fonctionnelle avec authentification réelle, base de données, assistant IA et visioconférence.
+- **QCM genere par IA** : L'edge function `ai-chat` est appelee avec le sujet et le topic du cours pour generer 5-10 questions a choix multiples. L'eleve repond et voit son score.
+- **Carte mentale** : L'IA genere une structure JSON (concepts + liens) et un composant React la rend visuellement sous forme d'arbre/carte mentale interactive.
+
+### Fichiers concernes
+
+- `**supabase/functions/ai-chat/index.ts**` : Ajouter un mode `quiz` et `mindmap` qui utilise le tool calling pour extraire du JSON structure (questions QCM + arbre de concepts).
+- `**src/pages/LessonReport.tsx**` : Refonte complete pour afficher le QCM interactif et la carte mentale au lieu des donnees statiques actuelles.
+- `**src/pages/LessonRoom.tsx**` : Modifier `handleEndCall` pour rediriger vers `/report/{id}` avec le sujet/topic en query params.
 
 ---
 
-## Phase 1 : Structure & Design
-- Reproduire fidèlement le design de l'application (sidebar avec logo "PROF EN LIGNE", navigation, thème gradient bleu/violet/rose)
-- Créer toutes les pages : Dashboard, Lessons, LiveConnect, AI Tutor, Notifications, Help, Pricing, Login, Signup, Admin Panel, LessonRoom, LessonReport
-- Mise en page responsive avec sidebar fixe et contenu principal
+## 2. Suppression de la page AI Tutor
 
-## Phase 2 : Backend & Authentification (Lovable Cloud)
-- Activer Lovable Cloud avec Supabase
-- Mettre en place l'authentification (inscription, connexion, déconnexion) avec email/mot de passe
-- Créer les tables : profiles, tutors, lessons, notifications, user_roles
-- Configurer les politiques RLS pour sécuriser les données
-- Implémenter les rôles Étudiant / Professeur / Admin
-- Routes protégées selon l'authentification et le rôle
+- `**src/components/layout/AppSidebar.tsx**` : Retirer l'entree `AI Tutor` du tableau `mainNav` et le sparkle icon associe.
+- `**src/App.tsx**` : Retirer la route `/ai-tutor` et l'import de `AITutor`.
+- Le fichier `src/pages/AITutor.tsx` reste dans le projet mais n'est plus accessible.
 
-## Phase 3 : Dashboard & Gestion des Cours
-- Dashboard étudiant : statistiques (heures de cours, moyenne, leçons à venir), liste des tuteurs disponibles, prochains cours
-- Dashboard professeur : planning de la semaine, élèves, revenus
-- Système de réservation de cours avec un tuteur
-- Page "Lessons" : historique et cours à venir avec statuts (Confirmé, En attente, Terminé)
-- Page "Lesson Report" : rapport de fin de cours
+---
 
-## Phase 4 : Assistant IA (Lovable AI)
-- Intégrer Lovable AI via une edge function pour l'assistance aux devoirs
-- Interface de chat avec streaming des réponses en temps réel
-- Support de l'envoi d'images (photos de devoirs) pour analyse par l'IA
-- Historique des conversations
+## 3. Mise a jour de la page Pricing
 
-## Phase 5 : Visioconférence
-- Intégrer un service de visioconférence (Daily.co ou similaire) pour les cours en direct
-- Page "LessonRoom" avec flux vidéo, chat en direct, partage d'écran
-- Page "LiveConnect" pour rejoindre ou démarrer une session
+Refonte de `src/pages/Pricing.tsx` pour correspondre exactement au design de reference :
 
-## Phase 6 : Fonctionnalités complémentaires
-- Système de notifications en temps réel
-- Page d'aide avec FAQ
-- Page Pricing avec les différentes formules d'abonnement
-- Panel Admin pour gérer les utilisateurs, tuteurs et cours
 
+| Plan       | Prix       | Style                                                         |
+| ---------- | ---------- | ------------------------------------------------------------- |
+| Decouverte | 0EUR/mois  | Carte blanche, bouton outline                                 |
+| Pro        | 29EUR/mois | Bordure doree, badge "LE PLUS POPULAIRE", bouton violet plein |
+| Prestige   | 99EUR/mois | Bouton gradient orange/dore                                   |
+
+
+### Features par plan (d'apres la reference)
+
+- **Decouverte** : support email 48h, quiz de base. Pas de :  cours en direct, Club Prestige, certificats.
+- **Pro** : support 24h, quiz avances et tournois, certificats. Pas de : Club Prestige, correction devoirs < 30min.
+- **Prestige** : Tout Pro + Club Prestige, tuteurs elite 17h-22h, correction devoirs en direct, suivi parental, garantie "Satisfait ou Rembourse".
+
+Icones par plan : etoile (Decouverte), eclair (Pro), couronne (Prestige).
+
+---
+
+## 4. Page d'avis des professeurs
+
+Nouvelle page `/reviews` accessible depuis la sidebar (section "Apprentissage").
+
+- `**src/pages/TutorReviews.tsx**` (nouveau) : Affiche la liste des tuteurs avec leurs notes, nombre d'avis, et commentaires des eleves. Design avec cards glass, etoiles, et avatars.
+- **Migration SQL** : Creer une table `tutor_reviews` (id, tutor_id, student_id, rating 1-5, comment, created_at) avec RLS pour que les eleves puissent lire tous les avis et ecrire les leurs.
+- `**src/hooks/useData.ts**` : Ajouter les hooks `useTutorReviews` et `useCreateReview`.
+- `**src/components/layout/AppSidebar.tsx**` : Ajouter "Avis Profs" dans `mainNav` avec l'icone `Star`.
+- `**src/App.tsx**` : Ajouter la route `/reviews`.
+
+---
+
+## 5. Alignement design avec les references
+
+Ajustements dans les pages modifiees pour coller au style "Prof en ligne" :
+
+- Sidebar avec les categories PRINCIPAL / APPRENTISSAGE / GENERAL
+- Cards blanches avec coins arrondis sur fond violet
+- Badges colores (jaune pour Prestige, violet pour Pro)
+- Boutons gradient violet ou orange selon le contexte
+
+### Modifications sidebar
+
+Reorganiser `AppSidebar.tsx` avec 3 groupes :
+
+- **PRINCIPAL** : Tableau de bord, Mes Lecons, Messages (notifications)
+- **APPRENTISSAGE** : Cours en direct, Trouver un prof (avis), Club Prestige (pricing)
+- **GENERAL** : Parametres, Aide
+
+---
+
+## Section technique - Ordre d'implementation
+
+1. Migration SQL pour `tutor_reviews`
+2. Modifier `AppSidebar.tsx` (retirer AI Tutor, ajouter Avis, reorganiser groupes)
+3. Modifier `App.tsx` (retirer route AI Tutor, ajouter route Reviews)
+4. Refondre `Pricing.tsx` avec les vrais prix et le design reference
+5. Creer `TutorReviews.tsx`
+6. Modifier `ai-chat/index.ts` pour supporter le mode quiz/mindmap
+7. Refondre `LessonReport.tsx` avec QCM interactif + carte mentale
+8. Modifier `LessonRoom.tsx` pour rediriger vers le rapport enrichi
+9. Ajouter hooks dans `useData.ts`
