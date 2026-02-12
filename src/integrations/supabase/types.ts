@@ -73,6 +73,36 @@ export type Database = {
           },
         ]
       }
+      credit_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          id: string
+          stripe_payment_id: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          stripe_payment_id?: string | null
+          type?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          stripe_payment_id?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       lessons: {
         Row: {
           created_at: string
@@ -211,6 +241,41 @@ export type Database = {
         }
         Relationships: []
       }
+      tutor_earnings: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          lesson_id: string | null
+          status: string
+          tutor_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          id?: string
+          lesson_id?: string | null
+          status?: string
+          tutor_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          lesson_id?: string | null
+          status?: string
+          tutor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tutor_earnings_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tutor_reviews: {
         Row: {
           comment: string | null
@@ -282,6 +347,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_credits: {
+        Row: {
+          balance: number
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -324,6 +413,36 @@ export type Database = {
           sender_id?: string
           signal_data?: Json
           signal_type?: string
+        }
+        Relationships: []
+      }
+      withdrawal_requests: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          status: string
+          stripe_transfer_id: string | null
+          tutor_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          status?: string
+          stripe_transfer_id?: string | null
+          tutor_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          status?: string
+          stripe_transfer_id?: string | null
+          tutor_id?: string
+          updated_at?: string
         }
         Relationships: []
       }
