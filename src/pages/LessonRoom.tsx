@@ -18,6 +18,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useWebRTC } from "@/hooks/useWebRTC";
 import { useRoomChat } from "@/hooks/useRoomChat";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export default function LessonRoom() {
@@ -25,6 +26,7 @@ export default function LessonRoom() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const roomId = id || "default";
+  const [authorized, setAuthorized] = useState<boolean | null>(null);
 
   const {
     localStream,
@@ -52,6 +54,25 @@ export default function LessonRoom() {
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  // Verify user is a participant of this lesson
+  useEffect(() => {
+    if (!user || !id) return;
+    supabase
+      .from("lessons")
+      .select("student_id, tutor_id")
+      .eq("id", id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data || (data.student_id !== user.id && data.tutor_id !== user.id)) {
+          toast.error("Vous n'avez pas accès à cette salle");
+          navigate("/dashboard");
+          setAuthorized(false);
+        } else {
+          setAuthorized(true);
+        }
+      });
+  }, [user, id, navigate]);
+
   // Attach local stream to video element
   useEffect(() => {
     if (localVideoRef.current && localStream) {
@@ -70,6 +91,11 @@ export default function LessonRoom() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatMessages]);
+
+  if (authorized === null) {
+    return <div className="flex items-center justify-center min-h-[60vh]"><span className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>;
+  }
+  if (authorized === false) return null;
 
   const handleStartCall = async () => {
     setCallStarted(true);
