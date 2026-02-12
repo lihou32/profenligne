@@ -45,46 +45,48 @@ export default function Dashboard() {
             <Zap className="h-3 w-3" /> NOUVEAU
           </span>
         </div>
-        <div className="relative z-10">
-          <h2 className="text-xl md:text-2xl font-bold font-display text-primary-foreground">
-            Bienvenue sur{" "}
-            <span className="gold-text">Prof en Ligne</span>
-          </h2>
-          <p className="text-primary-foreground/70 mt-2 max-w-lg text-sm">
-            Réservez des cours avec les meilleurs tuteurs, utilisez l'IA pour vos devoirs et progressez chaque jour !
-          </p>
-          <div className="flex gap-3 mt-5">
-            <Button asChild className="rounded-xl bg-primary-foreground/15 backdrop-blur border border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/25 transition-all">
-              <Link to="/lessons" className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4" /> Mes cours
-              </Link>
-            </Button>
-            <Button asChild className="rounded-xl bg-primary-foreground/15 backdrop-blur border border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/25 transition-all">
-              <Link to="/ai-tutor" className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4" /> AI Tutor
-              </Link>
-            </Button>
-          </div>
-        </div>
-        {/* Decorative glass panel */}
-        <div className="hidden md:block absolute right-6 top-1/2 -translate-y-1/2 w-56 glass-hero p-4 rounded-xl">
-          <p className="text-xs font-bold text-primary-foreground/80 flex items-center gap-1.5">
-            <Trophy className="h-3.5 w-3.5 text-gold" /> Progression
-          </p>
-          <div className="mt-3 space-y-3">
-            <div>
-              <div className="flex justify-between text-[10px] text-primary-foreground/60 mb-1">
-                <span>Cours complétés</span>
-                <span>{stats?.completedLessons || 0}</span>
-              </div>
-              <Progress value={Math.min((stats?.completedLessons || 0) * 10, 100)} className="h-1.5 bg-primary-foreground/10" />
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div className="flex-1">
+            <h2 className="text-xl md:text-2xl font-bold font-display text-primary-foreground">
+              Bienvenue sur{" "}
+              <span className="gold-text">Prof en Ligne</span>
+            </h2>
+            <p className="text-primary-foreground/70 mt-2 max-w-lg text-sm">
+              Réservez des cours avec les meilleurs tuteurs, utilisez l'IA pour vos devoirs et progressez chaque jour !
+            </p>
+            <div className="flex gap-3 mt-5">
+              <Button asChild className="rounded-xl bg-primary-foreground/15 backdrop-blur border border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/25 transition-all">
+                <Link to="/lessons" className="flex items-center gap-2">
+                  <BookOpen className="h-4 w-4" /> Mes cours
+                </Link>
+              </Button>
+              <Button asChild className="rounded-xl bg-primary-foreground/15 backdrop-blur border border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/25 transition-all">
+                <Link to="/ai-tutor" className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4" /> AI Tutor
+                </Link>
+              </Button>
             </div>
-            <div>
-              <div className="flex justify-between text-[10px] text-primary-foreground/60 mb-1">
-                <span>Heures d'étude</span>
-                <span>{stats?.totalHours || 0}h</span>
+          </div>
+          {/* Progression panel - flow layout, not absolute */}
+          <div className="hidden md:block w-56 shrink-0 glass-hero p-4 rounded-xl">
+            <p className="text-xs font-bold text-primary-foreground/80 flex items-center gap-1.5">
+              <Trophy className="h-3.5 w-3.5 text-gold" /> Progression
+            </p>
+            <div className="mt-3 space-y-3">
+              <div>
+                <div className="flex justify-between text-[10px] text-primary-foreground/60 mb-1">
+                  <span>Cours complétés</span>
+                  <span>{stats?.completedLessons || 0}</span>
+                </div>
+                <Progress value={Math.min((stats?.completedLessons || 0) * 10, 100)} className="h-1.5 bg-primary-foreground/10" />
               </div>
-              <Progress value={Math.min(Number(stats?.totalHours || 0) * 5, 100)} className="h-1.5 bg-primary-foreground/10" />
+              <div>
+                <div className="flex justify-between text-[10px] text-primary-foreground/60 mb-1">
+                  <span>Heures d'étude</span>
+                  <span>{stats?.totalHours || 0}h</span>
+                </div>
+                <Progress value={Math.min(Number(stats?.totalHours || 0) * 5, 100)} className="h-1.5 bg-primary-foreground/10" />
+              </div>
             </div>
           </div>
         </div>
