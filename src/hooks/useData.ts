@@ -54,15 +54,22 @@ export function useTutors() {
   return useQuery({
     queryKey: ["tutors"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("tutors")
-        .select("*, profiles!tutors_user_id_fkey(first_name, last_name, avatar_url)");
-      if (error) {
-        const { data: fallback, error: err2 } = await supabase.from("tutors").select("*");
-        if (err2) throw err2;
-        return fallback;
-      }
-      return data;
+      const { data: tutors, error } = await supabase.from("tutors").select("*");
+      if (error) throw error;
+
+      const userIds = [...new Set((tutors || []).map((t) => t.user_id))];
+      if (userIds.length === 0) return tutors || [];
+
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, first_name, last_name, avatar_url")
+        .in("user_id", userIds);
+
+      const profileMap = new Map((profiles || []).map((p) => [p.user_id, p]));
+      return (tutors || []).map((t) => ({
+        ...t,
+        profiles: profileMap.get(t.user_id) || null,
+      }));
     },
   });
 }
