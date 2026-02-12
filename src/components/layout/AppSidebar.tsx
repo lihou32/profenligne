@@ -1,29 +1,12 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
-  LayoutDashboard,
-  BookOpen,
-  Video,
-  Bot,
-  Bell,
-  HelpCircle,
-  CreditCard,
-  LogOut,
-  GraduationCap,
-  Shield,
-  Zap,
+  LayoutDashboard, BookOpen, Video, Bot, Bell, HelpCircle,
+  CreditCard, LogOut, GraduationCap, Shield, Zap, Sparkles,
 } from "lucide-react";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarSeparator,
+  Sidebar, SidebarContent, SidebarFooter, SidebarGroup,
+  SidebarGroupContent, SidebarGroupLabel, SidebarHeader,
+  SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -69,27 +52,27 @@ export function AppSidebar() {
     <Sidebar className="border-r-0">
       <SidebarHeader className="p-5">
         <Link to="/dashboard" className="flex items-center gap-3 group">
-          <div className="gradient-primary flex h-11 w-11 items-center justify-center rounded-xl glow transition-transform group-hover:scale-105">
+          <div className="gradient-primary flex h-11 w-11 items-center justify-center rounded-xl glow transition-transform group-hover:scale-105 group-hover:rotate-3">
             <GraduationCap className="h-6 w-6 text-primary-foreground" />
           </div>
           <div className="flex flex-col">
             <span className="text-sm font-bold tracking-tight text-sidebar-foreground font-display">
               PROF EN LIGNE
             </span>
-            <span className="text-[10px] font-medium text-sidebar-foreground/40 flex items-center gap-1">
-              <Zap className="h-2.5 w-2.5" />
-              Plateforme de Tutorat
+            <span className="text-[10px] font-medium text-sidebar-foreground/35 flex items-center gap-1">
+              <Zap className="h-2.5 w-2.5 text-gold" />
+              Tutorat Interactif
             </span>
           </div>
         </Link>
       </SidebarHeader>
 
-      <SidebarSeparator />
+      <SidebarSeparator className="opacity-30" />
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-[10px] font-bold uppercase tracking-[0.15em] text-sidebar-foreground/30 px-3">
-            Menu Principal
+          <SidebarGroupLabel className="text-[10px] font-bold uppercase tracking-[0.15em] text-sidebar-foreground/25 px-3">
+            Navigation
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -101,15 +84,18 @@ export function AppSidebar() {
                       asChild
                       isActive={isActive}
                       tooltip={item.title}
-                      className={`rounded-xl mx-1 transition-all duration-200 ${
+                      className={`rounded-xl mx-1 my-0.5 h-10 transition-all duration-200 ${
                         isActive
-                          ? "gradient-primary text-primary-foreground glow"
-                          : "hover:bg-sidebar-accent/80"
+                          ? "gradient-primary text-primary-foreground shadow-lg"
+                          : "hover:bg-sidebar-accent/60 text-sidebar-foreground/70 hover:text-sidebar-foreground"
                       }`}
                     >
                       <Link to={item.path}>
                         <item.icon className="h-4 w-4" />
                         <span className="font-medium">{item.title}</span>
+                        {item.path === "/ai-tutor" && !isActive && (
+                          <Sparkles className="ml-auto h-3 w-3 text-gold" />
+                        )}
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -119,10 +105,10 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarSeparator />
+        <SidebarSeparator className="opacity-30" />
 
         <SidebarGroup>
-          <SidebarGroupLabel className="text-[10px] font-bold uppercase tracking-[0.15em] text-sidebar-foreground/30 px-3">
+          <SidebarGroupLabel className="text-[10px] font-bold uppercase tracking-[0.15em] text-sidebar-foreground/25 px-3">
             Autres
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -135,10 +121,10 @@ export function AppSidebar() {
                       asChild
                       isActive={isActive}
                       tooltip={item.title}
-                      className={`rounded-xl mx-1 transition-all duration-200 ${
+                      className={`rounded-xl mx-1 my-0.5 h-10 transition-all duration-200 ${
                         isActive
-                          ? "gradient-primary text-primary-foreground glow"
-                          : "hover:bg-sidebar-accent/80"
+                          ? "gradient-primary text-primary-foreground shadow-lg"
+                          : "hover:bg-sidebar-accent/60 text-sidebar-foreground/70 hover:text-sidebar-foreground"
                       }`}
                     >
                       <Link to={item.path}>
@@ -155,10 +141,10 @@ export function AppSidebar() {
                     asChild
                     isActive={location.pathname === "/admin"}
                     tooltip="Admin"
-                    className={`rounded-xl mx-1 transition-all duration-200 ${
+                    className={`rounded-xl mx-1 my-0.5 h-10 transition-all duration-200 ${
                       location.pathname === "/admin"
-                        ? "gradient-primary text-primary-foreground glow"
-                        : "hover:bg-sidebar-accent/80"
+                        ? "gradient-primary text-primary-foreground shadow-lg"
+                        : "hover:bg-sidebar-accent/60 text-sidebar-foreground/70 hover:text-sidebar-foreground"
                     }`}
                   >
                     <Link to="/admin">
@@ -174,16 +160,19 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-3">
-        <SidebarSeparator />
-        <div className="flex items-center gap-3 rounded-xl p-3 mt-2 bg-sidebar-accent/50">
-          <Avatar className="h-9 w-9 gradient-primary text-primary-foreground">
+        <SidebarSeparator className="opacity-30" />
+        <div className="flex items-center gap-3 rounded-xl p-3 mt-2 bg-sidebar-accent/40 border border-sidebar-border/50">
+          <Avatar className="h-9 w-9">
             <AvatarFallback className="gradient-primary text-primary-foreground text-xs font-bold">
               {initials}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
             <p className="truncate text-sm font-semibold text-sidebar-foreground">{displayName}</p>
-            <p className="truncate text-[10px] text-sidebar-foreground/40">En ligne</p>
+            <p className="truncate text-[10px] text-sidebar-foreground/35 flex items-center gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-success inline-block" />
+              En ligne
+            </p>
           </div>
         </div>
         <SidebarMenu>
@@ -191,7 +180,7 @@ export function AppSidebar() {
             <SidebarMenuButton
               onClick={handleSignOut}
               tooltip="Déconnexion"
-              className="rounded-xl mx-1 hover:bg-destructive/20 hover:text-destructive transition-colors"
+              className="rounded-xl mx-1 hover:bg-destructive/15 hover:text-destructive text-sidebar-foreground/50 transition-colors"
             >
               <LogOut className="h-4 w-4" />
               <span className="font-medium">Déconnexion</span>
