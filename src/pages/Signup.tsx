@@ -10,6 +10,25 @@ import { useAuth } from "@/hooks/useAuth";
 import { lovable } from "@/integrations/lovable/index";
 import { toast } from "sonner";
 
+const GRADE_LEVELS = [
+  { value: "6eme", label: "6ème" },
+  { value: "5eme", label: "5ème" },
+  { value: "4eme", label: "4ème" },
+  { value: "3eme", label: "3ème" },
+  { value: "2nde", label: "2nde" },
+  { value: "1ere", label: "1ère" },
+  { value: "terminale", label: "Terminale" },
+  { value: "licence1", label: "Licence 1" },
+  { value: "licence2", label: "Licence 2" },
+  { value: "licence3", label: "Licence 3" },
+  { value: "master1", label: "Master 1" },
+  { value: "master2", label: "Master 2" },
+  { value: "autre", label: "Autre" },
+];
+
+const currentYear = new Date().getFullYear();
+const BIRTH_YEARS = Array.from({ length: 30 }, (_, i) => currentYear - 10 - i);
+
 export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [firstName, setFirstName] = useState("");
@@ -17,15 +36,30 @@ export default function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("student");
+  const [gradeLevel, setGradeLevel] = useState("");
+  const [birthYear, setBirthYear] = useState("");
+  const [schoolType, setSchoolType] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { signUp } = useAuth();
   const navigate = useNavigate();
+
+  const isStudent = role === "student";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await signUp(email, password, { first_name: firstName, last_name: lastName, role });
+      const metadata: Record<string, string> = {
+        first_name: firstName,
+        last_name: lastName,
+        role,
+      };
+      if (isStudent) {
+        if (gradeLevel) metadata.grade_level = gradeLevel;
+        if (birthYear) metadata.birth_year = birthYear;
+        if (schoolType) metadata.school_type = schoolType;
+      }
+      await signUp(email, password, metadata);
       toast.success("Compte créé avec succès !");
       navigate("/dashboard");
     } catch (error: any) {
@@ -112,12 +146,61 @@ export default function Signup() {
                   <SelectTrigger className="h-11 rounded-xl bg-secondary/50 border-border/50">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-popover border-border z-50">
                     <SelectItem value="student">🎓 Étudiant</SelectItem>
                     <SelectItem value="tutor">👨‍🏫 Professeur / Tuteur</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+
+              {isStudent && (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Classe / Niveau</Label>
+                      <Select value={gradeLevel} onValueChange={setGradeLevel}>
+                        <SelectTrigger className="h-11 rounded-xl bg-secondary/50 border-border/50">
+                          <SelectValue placeholder="Sélectionner" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-popover border-border z-50">
+                          {GRADE_LEVELS.map((g) => (
+                            <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Année de naissance</Label>
+                      <Select value={birthYear} onValueChange={setBirthYear}>
+                        <SelectTrigger className="h-11 rounded-xl bg-secondary/50 border-border/50">
+                          <SelectValue placeholder="Sélectionner" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-popover border-border z-50 max-h-48">
+                          {BIRTH_YEARS.map((y) => (
+                            <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Type d'établissement</Label>
+                    <Select value={schoolType} onValueChange={setSchoolType}>
+                      <SelectTrigger className="h-11 rounded-xl bg-secondary/50 border-border/50">
+                        <SelectValue placeholder="Sélectionner" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover border-border z-50">
+                        <SelectItem value="public">🏫 Public</SelectItem>
+                        <SelectItem value="prive">🏠 Privé</SelectItem>
+                        <SelectItem value="prive_sous_contrat">📋 Privé sous contrat</SelectItem>
+                        <SelectItem value="cned">📧 CNED / À distance</SelectItem>
+                        <SelectItem value="autre">📌 Autre</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
+
               <div className="space-y-2">
                 <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Mot de passe</Label>
                 <div className="relative">
