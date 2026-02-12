@@ -10,6 +10,8 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import Lessons from "./pages/Lessons";
 import LiveConnect from "./pages/LiveConnect";
@@ -20,6 +22,8 @@ import AdminPanel from "./pages/AdminPanel";
 import LessonRoom from "./pages/LessonRoom";
 import LessonReport from "./pages/LessonReport";
 import TutorReviews from "./pages/TutorReviews";
+import TutorEarnings from "./pages/TutorEarnings";
+import BuyCredits from "./pages/BuyCredits";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +38,8 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
 
             {/* Protected routes with sidebar layout */}
             <Route element={<AppLayout />}>
@@ -44,6 +50,8 @@ const App = () => (
               <Route path="/help" element={<Help />} />
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/reviews" element={<TutorReviews />} />
+              <Route path="/earnings" element={<TutorEarnings />} />
+              <Route path="/credits" element={<BuyCredits />} />
               <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminPanel /></ProtectedRoute>} />
               <Route path="/room/:id" element={<LessonRoom />} />
               <Route path="/report/:id" element={<LessonReport />} />

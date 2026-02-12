@@ -1,7 +1,8 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, BookOpen, Video, Bell, HelpCircle,
-  CreditCard, LogOut, GraduationCap, Shield, Zap, Star, Crown,
+  LogOut, GraduationCap, Shield, Zap, Star, Crown,
+  DollarSign, ToggleLeft, CreditCard,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup,
@@ -12,16 +13,29 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-const principalNav = [
+const studentPrincipalNav = [
   { title: "Tableau de bord", icon: LayoutDashboard, path: "/dashboard" },
   { title: "Mes Leçons", icon: BookOpen, path: "/lessons" },
   { title: "Messages", icon: Bell, path: "/notifications" },
 ];
 
-const apprentissageNav = [
+const studentApprentissageNav = [
   { title: "Cours en direct", icon: Video, path: "/live" },
   { title: "Avis Profs", icon: Star, path: "/reviews" },
+  { title: "Acheter des crédits", icon: CreditCard, path: "/credits" },
   { title: "Club Prestige", icon: Crown, path: "/pricing" },
+];
+
+const tutorPrincipalNav = [
+  { title: "Tableau de bord", icon: LayoutDashboard, path: "/dashboard" },
+  { title: "Mes Cours", icon: BookOpen, path: "/lessons" },
+  { title: "Messages", icon: Bell, path: "/notifications" },
+];
+
+const tutorActiviteNav = [
+  { title: "Mes Revenus", icon: DollarSign, path: "/earnings" },
+  { title: "Mes Avis", icon: Star, path: "/reviews" },
+  { title: "Cours en direct", icon: Video, path: "/live" },
 ];
 
 const generalNav = [
@@ -32,6 +46,7 @@ export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, profile, hasRole } = useAuth();
+  const isTutor = hasRole("tutor");
 
   const handleSignOut = async () => {
     try {
@@ -51,7 +66,9 @@ export function AppSidebar() {
     ? `${(profile.first_name?.[0] || "").toUpperCase()}${(profile.last_name?.[0] || "").toUpperCase()}`
     : "U";
 
-  const renderNavItems = (items: typeof principalNav) =>
+  const roleLabel = isTutor ? "Professeur" : "Étudiant";
+
+  const renderNavItems = (items: { title: string; icon: any; path: string }[]) =>
     items.map((item) => {
       const isActive = location.pathname === item.path;
       return (
@@ -74,6 +91,10 @@ export function AppSidebar() {
         </SidebarMenuItem>
       );
     });
+
+  const principalNav = isTutor ? tutorPrincipalNav : studentPrincipalNav;
+  const secondaryNav = isTutor ? tutorActiviteNav : studentApprentissageNav;
+  const secondaryLabel = isTutor ? "Activité" : "Apprentissage";
 
   return (
     <Sidebar className="border-r-0">
@@ -110,10 +131,10 @@ export function AppSidebar() {
 
         <SidebarGroup>
           <SidebarGroupLabel className="text-[10px] font-bold uppercase tracking-[0.15em] text-sidebar-foreground/25 px-3">
-            Apprentissage
+            {secondaryLabel}
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>{renderNavItems(apprentissageNav)}</SidebarMenu>
+            <SidebarMenu>{renderNavItems(secondaryNav)}</SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
@@ -162,7 +183,7 @@ export function AppSidebar() {
             <p className="truncate text-sm font-semibold text-sidebar-foreground">{displayName}</p>
             <p className="truncate text-[10px] text-sidebar-foreground/35 flex items-center gap-1">
               <span className="h-1.5 w-1.5 rounded-full bg-success inline-block" />
-              En ligne
+              {roleLabel}
             </p>
           </div>
         </div>
