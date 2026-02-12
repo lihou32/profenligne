@@ -1,7 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CreditCard, Sparkles, Zap, Crown, Check } from "lucide-react";
+import { CreditCard, Sparkles, Zap, Crown, Check, Wallet } from "lucide-react";
+import { useUserCredits, useCreditTransactions } from "@/hooks/useCredits";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 
 const packs = [
@@ -11,8 +14,11 @@ const packs = [
 ];
 
 export default function BuyCredits() {
+  const { data: userCredits } = useUserCredits();
+  const { data: transactions } = useCreditTransactions();
+
   const handleBuy = (credits: number) => {
-    toast.info("L'achat de crédits via Stripe sera bientôt disponible !");
+    toast.info("L'achat de crédits via Stripe sera configuré prochainement !");
   };
 
   return (
@@ -23,6 +29,21 @@ export default function BuyCredits() {
         </h1>
         <p className="text-muted-foreground mt-1">1 crédit = 1 cours avec un professeur</p>
       </div>
+
+      {/* Current balance */}
+      <Card className="glass-card max-w-md mx-auto">
+        <CardContent className="p-5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-gold to-warning shadow-lg">
+              <Wallet className="h-6 w-6 text-primary-foreground" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Mon solde</p>
+              <p className="text-3xl font-bold font-display">{userCredits?.balance ?? 0} <span className="text-sm text-muted-foreground">crédits</span></p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 md:grid-cols-3 max-w-3xl mx-auto">
         {packs.map((pack, i) => (
@@ -62,6 +83,28 @@ export default function BuyCredits() {
           </Card>
         ))}
       </div>
+
+      {/* Transaction history */}
+      {transactions && transactions.length > 0 && (
+        <Card className="glass-card max-w-3xl mx-auto">
+          <CardHeader>
+            <CardTitle className="text-lg font-display flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" /> Historique
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {transactions.map((tx: any) => (
+              <div key={tx.id} className="flex items-center justify-between rounded-xl border border-border/30 p-3">
+                <div>
+                  <p className="text-sm font-semibold">{tx.amount > 0 ? "+" : ""}{tx.amount} crédits</p>
+                  <p className="text-xs text-muted-foreground">{tx.description || tx.type}</p>
+                </div>
+                <p className="text-xs text-muted-foreground">{format(new Date(tx.created_at), "dd MMM yyyy", { locale: fr })}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
