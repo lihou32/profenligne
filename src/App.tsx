@@ -24,6 +24,7 @@ import LessonReport from "./pages/LessonReport";
 import TutorReviews from "./pages/TutorReviews";
 import TutorEarnings from "./pages/TutorEarnings";
 import BuyCredits from "./pages/BuyCredits";
+import AITutor from "./pages/AITutor";
 
 const queryClient = new QueryClient();
 
@@ -52,6 +53,7 @@ const App = () => (
               <Route path="/reviews" element={<TutorReviews />} />
               <Route path="/earnings" element={<TutorEarnings />} />
               <Route path="/credits" element={<BuyCredits />} />
+              <Route path="/ai-tutor" element={<AITutor />} />
               <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminPanel /></ProtectedRoute>} />
               <Route path="/room/:id" element={<LessonRoom />} />
               <Route path="/report/:id" element={<LessonReport />} />
