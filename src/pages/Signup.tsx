@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { GraduationCap, Eye, EyeOff, Sparkles, Zap } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -26,6 +27,12 @@ const GRADE_LEVELS = [
   { value: "autre", label: "Autre" },
 ];
 
+const SUBJECTS = [
+  "Mathématiques", "Français", "Anglais", "Physique-Chimie",
+  "SVT", "Histoire-Géographie", "Philosophie", "Espagnol",
+  "Allemand", "Informatique", "Économie", "SES",
+];
+
 const currentYear = new Date().getFullYear();
 const BIRTH_YEARS = Array.from({ length: 30 }, (_, i) => currentYear - 10 - i);
 
@@ -39,6 +46,7 @@ export default function Signup() {
   const [gradeLevel, setGradeLevel] = useState("");
   const [birthYear, setBirthYear] = useState("");
   const [schoolType, setSchoolType] = useState("");
+  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { signUp } = useAuth();
   const navigate = useNavigate();
@@ -59,6 +67,7 @@ export default function Signup() {
         if (birthYear) metadata.birth_year = birthYear;
         if (schoolType) metadata.school_type = schoolType;
       }
+      if (selectedSubjects.length > 0) metadata.subjects = selectedSubjects.join(",");
       await signUp(email, password, metadata);
       toast.success("Compte créé avec succès !");
       navigate("/dashboard");
@@ -200,6 +209,28 @@ export default function Signup() {
                   </div>
                 </>
               )}
+
+              {/* Subjects field for both roles */}
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {isStudent ? "Matières recherchées" : "Matières enseignées"}
+                </Label>
+                <div className="grid grid-cols-2 gap-2 rounded-xl bg-secondary/50 border border-border/50 p-3">
+                  {SUBJECTS.map((subject) => (
+                    <label key={subject} className="flex items-center gap-2 cursor-pointer text-sm">
+                      <Checkbox
+                        checked={selectedSubjects.includes(subject)}
+                        onCheckedChange={(checked) => {
+                          setSelectedSubjects((prev) =>
+                            checked ? [...prev, subject] : prev.filter((s) => s !== subject)
+                          );
+                        }}
+                      />
+                      <span className="text-foreground/80">{subject}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
 
               <div className="space-y-2">
                 <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Mot de passe</Label>
