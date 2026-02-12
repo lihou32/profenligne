@@ -12,35 +12,130 @@ serve(async (req) => {
   }
 
   try {
-    const { messages } = await req.json();
+    const body = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const response = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
-      {
+    const { mode } = body;
+
+    // ─── Quiz mode ──────────────────────────────────────
+    if (mode === "quiz") {
+      const { subject, topic } = body;
+      const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${LOVABLE_API_KEY}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
+          model: "google/gemini-2.5-flash",
           messages: [
             {
               role: "system",
-              content: `Tu es un tuteur IA bienveillant et pédagogue pour des élèves francophones (collège, lycée, université). 
+              content: `Tu es un générateur de QCM pédagogique. Génère exactement 5 questions à choix multiples sur le sujet donné. Réponds UNIQUEMENT avec un JSON valide, sans markdown, sans backticks. Format: {"questions":[{"question":"...","options":["A","B","C","D"],"correct":0}]} où correct est l'index (0-3) de la bonne réponse.`,
+            },
+            {
+              role: "user",
+              content: `Matière: ${subject}. Sujet: ${topic}. Génère 5 questions QCM.`,
+            },
+          ],
+        }),
+      });
+
+      if (!res.ok) {
+        const t = await res.text();
+        console.error("Quiz AI error:", res.status, t);
+        return new Response(JSON.stringify({ questions: [] }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const data = await res.json();
+      const content = data.choices?.[0]?.message?.content || "";
+      try {
+        const parsed = JSON.parse(content.replace(/```json\n?|```/g, "").trim());
+        return new Response(JSON.stringify(parsed), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch {
+        console.error("Quiz parse error:", content);
+        return new Response(JSON.stringify({ questions: [] }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    // ─── Mindmap mode ───────────────────────────────────
+    if (mode === "mindmap") {
+      const { subject, topic } = body;
+      const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            {
+              role: "system",
+              content: `Tu es un générateur de cartes mentales pédagogiques. Crée une carte mentale structurée sur le sujet donné. Réponds UNIQUEMENT avec un JSON valide, sans markdown, sans backticks. Format: {"mindmap":{"label":"Sujet principal","children":[{"label":"Concept 1","children":[{"label":"Sous-concept"}]}]}}`,
+            },
+            {
+              role: "user",
+              content: `Matière: ${subject}. Sujet: ${topic}. Génère une carte mentale avec 4-6 branches principales et 2-3 sous-branches.`,
+            },
+          ],
+        }),
+      });
+
+      if (!res.ok) {
+        const t = await res.text();
+        console.error("Mindmap AI error:", res.status, t);
+        return new Response(JSON.stringify({ mindmap: null }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const data = await res.json();
+      const content = data.choices?.[0]?.message?.content || "";
+      try {
+        const parsed = JSON.parse(content.replace(/```json\n?|```/g, "").trim());
+        return new Response(JSON.stringify(parsed), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch {
+        console.error("Mindmap parse error:", content);
+        return new Response(JSON.stringify({ mindmap: null }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    // ─── Default chat mode ──────────────────────────────
+    const { messages } = body;
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          {
+            role: "system",
+            content: `Tu es un tuteur IA bienveillant et pédagogue pour des élèves francophones (collège, lycée, université). 
 Tu aides avec les devoirs, expliques des concepts, résous des exercices étape par étape.
 Tu utilises le markdown pour structurer tes réponses (titres, listes, formules, code).
 Si l'élève envoie une image de devoir, analyse-la attentivement et aide-le.
 Sois encourageant et patient. Réponds toujours en français.`,
-            },
-            ...messages,
-          ],
-          stream: true,
-        }),
-      }
-    );
+          },
+          ...messages,
+        ],
+        stream: true,
+      }),
+    });
 
     if (!response.ok) {
       if (response.status === 429) {
@@ -51,7 +146,7 @@ Sois encourageant et patient. Réponds toujours en français.`,
       }
       if (response.status === 402) {
         return new Response(
-          JSON.stringify({ error: "Crédits IA épuisés. Ajoutez des crédits dans les paramètres." }),
+          JSON.stringify({ error: "Crédits IA épuisés." }),
           { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }

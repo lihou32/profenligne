@@ -13,13 +13,13 @@ import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import Lessons from "./pages/Lessons";
 import LiveConnect from "./pages/LiveConnect";
-import AITutor from "./pages/AITutor";
 import Notifications from "./pages/Notifications";
 import Help from "./pages/Help";
 import Pricing from "./pages/Pricing";
 import AdminPanel from "./pages/AdminPanel";
 import LessonRoom from "./pages/LessonRoom";
 import LessonReport from "./pages/LessonReport";
+import TutorReviews from "./pages/TutorReviews";
 
 const queryClient = new QueryClient();
 
@@ -40,10 +40,10 @@ const App = () => (
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/lessons" element={<Lessons />} />
               <Route path="/live" element={<LiveConnect />} />
-              <Route path="/ai-tutor" element={<AITutor />} />
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/help" element={<Help />} />
               <Route path="/pricing" element={<Pricing />} />
+              <Route path="/reviews" element={<TutorReviews />} />
               <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminPanel /></ProtectedRoute>} />
               <Route path="/room/:id" element={<LessonRoom />} />
               <Route path="/report/:id" element={<LessonReport />} />

@@ -100,6 +100,34 @@ export function useMarkNotificationsRead() {
   });
 }
 
+// ─── Tutor Reviews ──────────────────────────────────────
+
+export function useTutorReviews() {
+  return useQuery({
+    queryKey: ["tutor-reviews"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tutor_reviews")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useCreateReview() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (review: { tutor_id: string; student_id: string; rating: number; comment: string | null }) => {
+      const { data, error } = await supabase.from("tutor_reviews").insert(review).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["tutor-reviews"] }),
+  });
+}
+
 // ─── Dashboard Stats ────────────────────────────────────
 
 export function useDashboardStats() {

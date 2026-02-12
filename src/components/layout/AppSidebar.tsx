@@ -1,7 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
-  LayoutDashboard, BookOpen, Video, Bot, Bell, HelpCircle,
-  CreditCard, LogOut, GraduationCap, Shield, Zap, Sparkles,
+  LayoutDashboard, BookOpen, Video, Bell, HelpCircle,
+  CreditCard, LogOut, GraduationCap, Shield, Zap, Star, Crown,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup,
@@ -12,16 +12,19 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-const mainNav = [
-  { title: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
-  { title: "Mes Cours", icon: BookOpen, path: "/lessons" },
-  { title: "LiveConnect", icon: Video, path: "/live" },
-  { title: "AI Tutor", icon: Bot, path: "/ai-tutor" },
+const principalNav = [
+  { title: "Tableau de bord", icon: LayoutDashboard, path: "/dashboard" },
+  { title: "Mes Leçons", icon: BookOpen, path: "/lessons" },
+  { title: "Messages", icon: Bell, path: "/notifications" },
 ];
 
-const secondaryNav = [
-  { title: "Notifications", icon: Bell, path: "/notifications" },
-  { title: "Tarifs", icon: CreditCard, path: "/pricing" },
+const apprentissageNav = [
+  { title: "Cours en direct", icon: Video, path: "/live" },
+  { title: "Avis Profs", icon: Star, path: "/reviews" },
+  { title: "Club Prestige", icon: Crown, path: "/pricing" },
+];
+
+const generalNav = [
   { title: "Aide", icon: HelpCircle, path: "/help" },
 ];
 
@@ -48,6 +51,30 @@ export function AppSidebar() {
     ? `${(profile.first_name?.[0] || "").toUpperCase()}${(profile.last_name?.[0] || "").toUpperCase()}`
     : "U";
 
+  const renderNavItems = (items: typeof principalNav) =>
+    items.map((item) => {
+      const isActive = location.pathname === item.path;
+      return (
+        <SidebarMenuItem key={item.path}>
+          <SidebarMenuButton
+            asChild
+            isActive={isActive}
+            tooltip={item.title}
+            className={`rounded-xl mx-1 my-0.5 h-10 transition-all duration-200 ${
+              isActive
+                ? "gradient-primary text-primary-foreground shadow-lg"
+                : "hover:bg-sidebar-accent/60 text-sidebar-foreground/70 hover:text-sidebar-foreground"
+            }`}
+          >
+            <Link to={item.path}>
+              <item.icon className="h-4 w-4" />
+              <span className="font-medium">{item.title}</span>
+            </Link>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      );
+    });
+
   return (
     <Sidebar className="border-r-0">
       <SidebarHeader className="p-5">
@@ -72,36 +99,10 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className="text-[10px] font-bold uppercase tracking-[0.15em] text-sidebar-foreground/25 px-3">
-            Navigation
+            Principal
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
-              {mainNav.map((item) => {
-                const isActive = location.pathname === item.path;
-                return (
-                  <SidebarMenuItem key={item.path}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive}
-                      tooltip={item.title}
-                      className={`rounded-xl mx-1 my-0.5 h-10 transition-all duration-200 ${
-                        isActive
-                          ? "gradient-primary text-primary-foreground shadow-lg"
-                          : "hover:bg-sidebar-accent/60 text-sidebar-foreground/70 hover:text-sidebar-foreground"
-                      }`}
-                    >
-                      <Link to={item.path}>
-                        <item.icon className="h-4 w-4" />
-                        <span className="font-medium">{item.title}</span>
-                        {item.path === "/ai-tutor" && !isActive && (
-                          <Sparkles className="ml-auto h-3 w-3 text-gold" />
-                        )}
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
+            <SidebarMenu>{renderNavItems(principalNav)}</SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
@@ -109,32 +110,22 @@ export function AppSidebar() {
 
         <SidebarGroup>
           <SidebarGroupLabel className="text-[10px] font-bold uppercase tracking-[0.15em] text-sidebar-foreground/25 px-3">
-            Autres
+            Apprentissage
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>{renderNavItems(apprentissageNav)}</SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarSeparator className="opacity-30" />
+
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-[10px] font-bold uppercase tracking-[0.15em] text-sidebar-foreground/25 px-3">
+            Général
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {secondaryNav.map((item) => {
-                const isActive = location.pathname === item.path;
-                return (
-                  <SidebarMenuItem key={item.path}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive}
-                      tooltip={item.title}
-                      className={`rounded-xl mx-1 my-0.5 h-10 transition-all duration-200 ${
-                        isActive
-                          ? "gradient-primary text-primary-foreground shadow-lg"
-                          : "hover:bg-sidebar-accent/60 text-sidebar-foreground/70 hover:text-sidebar-foreground"
-                      }`}
-                    >
-                      <Link to={item.path}>
-                        <item.icon className="h-4 w-4" />
-                        <span className="font-medium">{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
+              {renderNavItems(generalNav)}
               {hasRole("admin") && (
                 <SidebarMenuItem>
                   <SidebarMenuButton

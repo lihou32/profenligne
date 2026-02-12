@@ -94,7 +94,8 @@ export default function LessonRoom() {
   const handleEndCall = () => {
     endCall();
     setCallStarted(false);
-    navigate("/lessons");
+    // Redirect to AI-powered report with subject/topic
+    navigate(`/report/${roomId}?subject=Mathématiques&topic=Cours`);
   };
 
   const handleToggleVideo = () => {
