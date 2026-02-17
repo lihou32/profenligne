@@ -191,7 +191,11 @@ export type Database = {
           grade_level: string | null
           id: string
           last_name: string | null
+          notify_lesson_cancelled: boolean
+          notify_lesson_reminder: boolean
+          notify_new_message: boolean
           school_type: string | null
+          theme: string
           updated_at: string
           user_id: string
         }
@@ -204,7 +208,11 @@ export type Database = {
           grade_level?: string | null
           id?: string
           last_name?: string | null
+          notify_lesson_cancelled?: boolean
+          notify_lesson_reminder?: boolean
+          notify_new_message?: boolean
           school_type?: string | null
+          theme?: string
           updated_at?: string
           user_id: string
         }
@@ -217,7 +225,11 @@ export type Database = {
           grade_level?: string | null
           id?: string
           last_name?: string | null
+          notify_lesson_cancelled?: boolean
+          notify_lesson_reminder?: boolean
+          notify_new_message?: boolean
           school_type?: string | null
+          theme?: string
           updated_at?: string
           user_id?: string
         }
