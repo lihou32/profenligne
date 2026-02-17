@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, BookOpen, Video, Bell, HelpCircle,
   LogOut, GraduationCap, Shield, Zap, Star, Crown,
-  DollarSign, ToggleLeft, CreditCard, UserCircle,
+  DollarSign, ToggleLeft, CreditCard, UserCircle, Settings,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup,
@@ -39,6 +39,7 @@ const tutorActiviteNav = [
 ];
 
 const generalNav = [
+  { title: "Paramètres", icon: Settings, path: "/settings" },
   { title: "Aide", icon: HelpCircle, path: "/help" },
 ];
 
