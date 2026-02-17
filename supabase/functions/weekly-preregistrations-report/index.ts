@@ -12,6 +12,18 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Validate cron secret to prevent unauthorized triggers
+    const authHeader = req.headers.get("Authorization");
+    const cronSecret = Deno.env.get("CRON_SECRET");
+    if (cronSecret && (!authHeader || authHeader !== `Bearer ${cronSecret}`)) {
+      const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+      if (!authHeader || !anonKey || authHeader !== `Bearer ${anonKey}`) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY not configured");
 

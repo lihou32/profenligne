@@ -12,6 +12,19 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Validate cron secret to prevent unauthorized triggers
+    const authHeader = req.headers.get("Authorization");
+    const cronSecret = Deno.env.get("CRON_SECRET");
+    if (cronSecret && (!authHeader || authHeader !== `Bearer ${cronSecret}`)) {
+      // Also allow Supabase anon key for scheduled invocations
+      const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+      if (!authHeader || !anonKey || authHeader !== `Bearer ${anonKey}`) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
