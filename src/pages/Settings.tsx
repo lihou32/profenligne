@@ -1,13 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, Lock, Trash2, Loader2, AlertTriangle } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Settings, Lock, Trash2, Loader2, AlertTriangle, Bell, Sun, Moon, Palette } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { useTheme } from "next-themes";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -17,12 +19,69 @@ import {
 export default function SettingsPage() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
 
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+
+  // Notification preferences
+  const [notifyLessonReminder, setNotifyLessonReminder] = useState(true);
+  const [notifyNewMessage, setNotifyNewMessage] = useState(true);
+  const [notifyLessonCancelled, setNotifyLessonCancelled] = useState(true);
+  const [isSavingNotifs, setIsSavingNotifs] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("profiles")
+      .select("notify_lesson_reminder, notify_new_message, notify_lesson_cancelled, theme")
+      .eq("user_id", user.id)
+      .single()
+      .then(({ data }) => {
+        if (data) {
+          setNotifyLessonReminder((data as any).notify_lesson_reminder ?? true);
+          setNotifyNewMessage((data as any).notify_new_message ?? true);
+          setNotifyLessonCancelled((data as any).notify_lesson_cancelled ?? true);
+          const savedTheme = (data as any).theme;
+          if (savedTheme && savedTheme !== theme) {
+            setTheme(savedTheme);
+          }
+        }
+      });
+  }, [user]);
+
+  const handleSaveNotifs = async () => {
+    if (!user) return;
+    setIsSavingNotifs(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          notify_lesson_reminder: notifyLessonReminder,
+          notify_new_message: notifyNewMessage,
+          notify_lesson_cancelled: notifyLessonCancelled,
+        } as any)
+        .eq("user_id", user.id);
+      if (error) throw error;
+      toast.success("Préférences de notifications sauvegardées !");
+    } catch (error: any) {
+      toast.error(error.message || "Erreur lors de la sauvegarde");
+    } finally {
+      setIsSavingNotifs(false);
+    }
+  };
+
+  const handleThemeChange = async (newTheme: string) => {
+    setTheme(newTheme);
+    if (!user) return;
+    await supabase
+      .from("profiles")
+      .update({ theme: newTheme } as any)
+      .eq("user_id", user.id);
+  };
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,7 +111,6 @@ export default function SettingsPage() {
     if (deleteConfirmText !== "SUPPRIMER") return;
     setIsDeletingAccount(true);
     try {
-      // Call edge function to delete account server-side
       const { data: { session } } = await supabase.auth.getSession();
       const res = await supabase.functions.invoke("delete-account", {
         headers: { Authorization: `Bearer ${session?.access_token}` },
@@ -82,8 +140,90 @@ export default function SettingsPage() {
       <Card className="glass-card">
         <CardHeader>
           <CardTitle className="text-lg">Compte</CardTitle>
-          <CardDescription>Votre adresse email : <span className="text-foreground font-medium">{user?.email}</span></CardDescription>
+          <CardDescription>
+            Votre adresse email : <span className="text-foreground font-medium">{user?.email}</span>
+          </CardDescription>
         </CardHeader>
+      </Card>
+
+      {/* Theme */}
+      <Card className="glass-card">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Palette className="h-5 w-5 text-primary" />
+            Apparence
+          </CardTitle>
+          <CardDescription>Choisissez votre thème préféré</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-3">
+            <Button
+              variant={theme === "dark" ? "default" : "outline"}
+              onClick={() => handleThemeChange("dark")}
+              className={`flex-1 h-12 rounded-xl font-semibold gap-2 ${
+                theme === "dark" ? "gradient-primary text-primary-foreground" : "bg-secondary/50 border-border/50"
+              }`}
+            >
+              <Moon className="h-4 w-4" />
+              Sombre
+            </Button>
+            <Button
+              variant={theme === "light" ? "default" : "outline"}
+              onClick={() => handleThemeChange("light")}
+              className={`flex-1 h-12 rounded-xl font-semibold gap-2 ${
+                theme === "light" ? "gradient-primary text-primary-foreground" : "bg-secondary/50 border-border/50"
+              }`}
+            >
+              <Sun className="h-4 w-4" />
+              Clair
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Notifications */}
+      <Card className="glass-card">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Bell className="h-5 w-5 text-primary" />
+            Notifications par email
+          </CardTitle>
+          <CardDescription>Choisissez les notifications que vous souhaitez recevoir</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">Rappels de cours</p>
+              <p className="text-xs text-muted-foreground">Recevez un email avant vos cours programmés</p>
+            </div>
+            <Switch checked={notifyLessonReminder} onCheckedChange={setNotifyLessonReminder} />
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">Nouveaux messages</p>
+              <p className="text-xs text-muted-foreground">Soyez notifié quand vous recevez un message</p>
+            </div>
+            <Switch checked={notifyNewMessage} onCheckedChange={setNotifyNewMessage} />
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">Cours annulés</p>
+              <p className="text-xs text-muted-foreground">Soyez informé si un cours est annulé</p>
+            </div>
+            <Switch checked={notifyLessonCancelled} onCheckedChange={setNotifyLessonCancelled} />
+          </div>
+          <Button
+            onClick={handleSaveNotifs}
+            disabled={isSavingNotifs}
+            className="w-full h-11 rounded-xl gradient-primary text-primary-foreground font-semibold btn-glow"
+          >
+            {isSavingNotifs ? (
+              <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Sauvegarde...</span>
+            ) : (
+              "Sauvegarder les préférences"
+            )}
+          </Button>
+        </CardContent>
       </Card>
 
       {/* Change Password */}
@@ -166,7 +306,7 @@ export default function SettingsPage() {
                   Êtes-vous absolument sûr ?
                 </AlertDialogTitle>
                 <AlertDialogDescription className="space-y-3">
-                  <p>Cette action supprimera définitivement votre compte et toutes les données associées. Cette action est irréversible.</p>
+                  <p>Cette action supprimera définitivement votre compte et toutes les données associées.</p>
                   <div className="space-y-2">
                     <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                       Tapez SUPPRIMER pour confirmer
