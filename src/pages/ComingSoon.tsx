@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Rocket, GraduationCap, BookOpen, CheckCircle, Mail } from "lucide-react";
 
-const LAUNCH_DATE = new Date("2026-04-01T00:00:00");
+const LAUNCH_DATE = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
 
 function useCountdown(target: Date) {
   const [timeLeft, setTimeLeft] = useState(getTimeLeft(target));
