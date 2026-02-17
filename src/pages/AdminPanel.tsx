@@ -1,8 +1,12 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Users, BookOpen, DollarSign, TrendingUp, MoreHorizontal } from "lucide-react";
+import { Users, BookOpen, DollarSign, TrendingUp, MoreHorizontal, Mail } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 const stats = [
   { label: "Utilisateurs", value: "1,234", icon: Users, change: "+12%" },
@@ -18,7 +22,30 @@ const users = [
   { id: 4, name: "Mr. Smith", email: "smith@email.com", role: "tutor", status: "active" },
 ];
 
+interface Preregistration {
+  id: string;
+  email: string;
+  role: string;
+  created_at: string;
+}
+
 export default function AdminPanel() {
+  const [preregistrations, setPreregistrations] = useState<Preregistration[]>([]);
+  const [loadingPrereg, setLoadingPrereg] = useState(false);
+
+  useEffect(() => {
+    const fetchPreregistrations = async () => {
+      setLoadingPrereg(true);
+      const { data } = await supabase
+        .from("preregistrations")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (data) setPreregistrations(data);
+      setLoadingPrereg(false);
+    };
+    fetchPreregistrations();
+  }, []);
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
@@ -45,12 +72,59 @@ export default function AdminPanel() {
         ))}
       </div>
 
-      <Tabs defaultValue="users">
+      <Tabs defaultValue="preregistrations">
         <TabsList>
+          <TabsTrigger value="preregistrations">Préinscrits</TabsTrigger>
           <TabsTrigger value="users">Utilisateurs</TabsTrigger>
           <TabsTrigger value="tutors">Tuteurs</TabsTrigger>
           <TabsTrigger value="lessons">Cours</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="preregistrations" className="mt-4">
+          <Card className="glass-card">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Mail className="h-5 w-5" />
+                  Liste d'attente
+                </CardTitle>
+                <Badge variant="secondary">{preregistrations.length} inscrit(s)</Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              {loadingPrereg ? (
+                <p className="p-6 text-center text-muted-foreground">Chargement…</p>
+              ) : preregistrations.length === 0 ? (
+                <p className="p-6 text-center text-muted-foreground">Aucun préinscrit pour le moment</p>
+              ) : (
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b text-left text-sm text-muted-foreground">
+                      <th className="p-4">Email</th>
+                      <th className="p-4">Rôle</th>
+                      <th className="p-4">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {preregistrations.map((p) => (
+                      <tr key={p.id} className="border-b last:border-0 hover:bg-muted/50">
+                        <td className="p-4 font-medium">{p.email}</td>
+                        <td className="p-4">
+                          <Badge variant="secondary">
+                            {p.role === "student" ? "Élève" : "Tuteur"}
+                          </Badge>
+                        </td>
+                        <td className="p-4 text-sm text-muted-foreground">
+                          {format(new Date(p.created_at), "dd MMM yyyy à HH:mm", { locale: fr })}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="users" className="mt-4">
           <Card className="glass-card">
