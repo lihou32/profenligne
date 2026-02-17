@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, BookOpen, Video, Bell, HelpCircle,
   LogOut, GraduationCap, Shield, Zap, Star, Crown,
-  DollarSign, ToggleLeft, CreditCard,
+  DollarSign, ToggleLeft, CreditCard, UserCircle,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup,
@@ -173,7 +173,7 @@ export function AppSidebar() {
 
       <SidebarFooter className="p-3">
         <SidebarSeparator className="opacity-30" />
-        <div className="flex items-center gap-3 rounded-xl p-3 mt-2 bg-sidebar-accent/40 border border-sidebar-border/50">
+        <Link to="/profile" className="flex items-center gap-3 rounded-xl p-3 mt-2 bg-sidebar-accent/40 border border-sidebar-border/50 hover:bg-sidebar-accent/60 transition-colors cursor-pointer">
           <Avatar className="h-9 w-9">
             <AvatarFallback className="gradient-primary text-primary-foreground text-xs font-bold">
               {initials}
@@ -186,7 +186,7 @@ export function AppSidebar() {
               {roleLabel}
             </p>
           </div>
-        </div>
+        </Link>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
