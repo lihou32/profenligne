@@ -67,11 +67,20 @@ export default function Profile() {
       setSchoolType((profile as any).school_type || "");
       setAvatarUrl(profile.avatar_url);
     }
-    // Load subjects from user metadata
-    if (user?.user_metadata?.subjects) {
+    // Load subjects: for tutors from tutors table, for students from user metadata
+    if (isTutor && user) {
+      supabase
+        .from("tutors")
+        .select("subjects")
+        .eq("user_id", user.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data?.subjects) setSelectedSubjects(data.subjects);
+        });
+    } else if (user?.user_metadata?.subjects) {
       setSelectedSubjects(user.user_metadata.subjects.split(","));
     }
-  }, [profile, user]);
+  }, [profile, user, isTutor]);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -137,10 +146,18 @@ export default function Profile() {
 
       if (error) throw error;
 
-      // Update subjects in user metadata
-      await supabase.auth.updateUser({
-        data: { subjects: selectedSubjects.join(",") },
-      });
+      // Update subjects: for tutors save to tutors table, for students to user metadata
+      if (isTutor) {
+        const { error: tutorError } = await supabase
+          .from("tutors")
+          .update({ subjects: selectedSubjects })
+          .eq("user_id", user.id);
+        if (tutorError) throw tutorError;
+      } else {
+        await supabase.auth.updateUser({
+          data: { subjects: selectedSubjects.join(",") },
+        });
+      }
 
       toast.success("Profil mis à jour avec succès !");
     } catch (error: any) {

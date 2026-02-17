@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, X, Star, Zap, Crown } from "lucide-react";
+import { toast } from "sonner";
 
 const plans = [
   {
@@ -125,6 +126,13 @@ export default function Pricing() {
                       : ""
                 }`}
                 variant={plan.popular || plan.prestige ? "default" : "outline"}
+                onClick={() => {
+                  if (plan.price === "0") {
+                    toast.info("Vous utilisez déjà la formule Découverte !");
+                  } else {
+                    toast.info("Les abonnements seront disponibles prochainement.");
+                  }
+                }}
               >
                 {plan.price === "0" ? "Commencer gratuitement" : "S'abonner"}
               </Button>

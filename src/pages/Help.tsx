@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { HelpCircle, Mail, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 const faqs = [
   { q: "Comment réserver un cours ?", a: "Rendez-vous dans la section 'Mes Cours' et cliquez sur 'Réserver un cours'. Sélectionnez le tuteur, la matière et le créneau qui vous convient." },
@@ -45,11 +46,13 @@ export default function Help() {
           <h3 className="font-semibold">Besoin d'aide supplémentaire ?</h3>
           <p className="text-sm text-muted-foreground">Notre équipe est disponible pour vous aider</p>
           <div className="flex gap-3">
-            <Button variant="outline">
-              <Mail className="mr-2 h-4 w-4" />
-              Email
+            <Button variant="outline" asChild>
+              <a href="mailto:support@profenligne.fr">
+                <Mail className="mr-2 h-4 w-4" />
+                Email
+              </a>
             </Button>
-            <Button className="gradient-primary text-primary-foreground">
+            <Button className="gradient-primary text-primary-foreground" onClick={() => toast.info("Le chat en direct sera bientôt disponible !")}>
               <MessageCircle className="mr-2 h-4 w-4" />
               Chat en direct
             </Button>
