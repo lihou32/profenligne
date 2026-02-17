@@ -3,6 +3,7 @@ import {
   LayoutDashboard, BookOpen, Video, Bell, HelpCircle,
   LogOut, GraduationCap, Shield, Zap, Star, Crown,
   DollarSign, ToggleLeft, CreditCard, UserCircle, Settings,
+  Bot,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup,
@@ -21,6 +22,7 @@ const studentPrincipalNav = [
 
 const studentApprentissageNav = [
   { title: "Cours en direct", icon: Video, path: "/live" },
+  { title: "AI Tutor", icon: Bot, path: "/ai-tutor" },
   { title: "Avis Profs", icon: Star, path: "/reviews" },
   { title: "Acheter des crédits", icon: CreditCard, path: "/credits" },
   { title: "Club Prestige", icon: Crown, path: "/pricing" },

@@ -117,11 +117,18 @@ export default function LessonRoom() {
     }
   };
 
-  const handleEndCall = () => {
+  const handleEndCall = async () => {
     endCall();
     setCallStarted(false);
-    // Redirect to AI-powered report with subject/topic
-    navigate(`/report/${roomId}?subject=Mathématiques&topic=Cours`);
+    // Fetch lesson data for the report redirect
+    const { data: lesson } = await supabase
+      .from("lessons")
+      .select("subject, topic")
+      .eq("id", id!)
+      .maybeSingle();
+    const subject = encodeURIComponent(lesson?.subject || "Cours");
+    const topic = encodeURIComponent(lesson?.topic || "");
+    navigate(`/report/${roomId}?subject=${subject}&topic=${topic}`);
   };
 
   const handleToggleVideo = () => {

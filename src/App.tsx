@@ -4,6 +4,30 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import ComingSoon from "./pages/ComingSoon";
+import { AuthProvider } from "@/hooks/useAuth";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { AppLayout } from "@/components/layout/AppLayout";
+import Index from "./pages/Index";
+import NotFound from "./pages/NotFound";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+import Dashboard from "./pages/Dashboard";
+import Lessons from "./pages/Lessons";
+import LiveConnect from "./pages/LiveConnect";
+import Notifications from "./pages/Notifications";
+import Help from "./pages/Help";
+import Pricing from "./pages/Pricing";
+import AdminPanel from "./pages/AdminPanel";
+import LessonRoom from "./pages/LessonRoom";
+import LessonReport from "./pages/LessonReport";
+import TutorReviews from "./pages/TutorReviews";
+import TutorEarnings from "./pages/TutorEarnings";
+import BuyCredits from "./pages/BuyCredits";
+import AITutor from "./pages/AITutor";
+import Profile from "./pages/Profile";
+import SettingsPage from "./pages/Settings";
 
 const queryClient = new QueryClient();
 
@@ -28,38 +52,6 @@ const App = () => {
     );
   }
 
-  // Full app (lazy-loaded only when needed)
-  return <FullApp />;
-};
-
-// Keep full app separate so it's not loaded in coming soon mode
-const FullApp = () => {
-  // Dynamic imports would go here, but for simplicity we keep static
-  const { AuthProvider } = require("@/hooks/useAuth");
-  const { ProtectedRoute } = require("@/components/auth/ProtectedRoute");
-  const { AppLayout } = require("@/components/layout/AppLayout");
-  const Index = require("./pages/Index").default;
-  const NotFound = require("./pages/NotFound").default;
-  const Login = require("./pages/Login").default;
-  const Signup = require("./pages/Signup").default;
-  const ForgotPassword = require("./pages/ForgotPassword").default;
-  const ResetPassword = require("./pages/ResetPassword").default;
-  const Dashboard = require("./pages/Dashboard").default;
-  const Lessons = require("./pages/Lessons").default;
-  const LiveConnect = require("./pages/LiveConnect").default;
-  const Notifications = require("./pages/Notifications").default;
-  const Help = require("./pages/Help").default;
-  const Pricing = require("./pages/Pricing").default;
-  const AdminPanel = require("./pages/AdminPanel").default;
-  const LessonRoom = require("./pages/LessonRoom").default;
-  const LessonReport = require("./pages/LessonReport").default;
-  const TutorReviews = require("./pages/TutorReviews").default;
-  const TutorEarnings = require("./pages/TutorEarnings").default;
-  const BuyCredits = require("./pages/BuyCredits").default;
-  const AITutor = require("./pages/AITutor").default;
-  const Profile = require("./pages/Profile").default;
-  const SettingsPage = require("./pages/Settings").default;
-
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -82,8 +74,8 @@ const FullApp = () => {
                 <Route path="/help" element={<Help />} />
                 <Route path="/pricing" element={<Pricing />} />
                 <Route path="/reviews" element={<TutorReviews />} />
-                <Route path="/earnings" element={<TutorEarnings />} />
-                <Route path="/credits" element={<BuyCredits />} />
+                <Route path="/earnings" element={<ProtectedRoute requiredRole="tutor"><TutorEarnings /></ProtectedRoute>} />
+                <Route path="/credits" element={<ProtectedRoute requiredRole="student"><BuyCredits /></ProtectedRoute>} />
                 <Route path="/ai-tutor" element={<AITutor />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/settings" element={<SettingsPage />} />

@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Rocket, GraduationCap, BookOpen, CheckCircle, Mail } from "lucide-react";
 
-const LAUNCH_DATE = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
+const LAUNCH_DATE = new Date("2026-04-01T00:00:00");
 
 function useCountdown(target: Date) {
   const [timeLeft, setTimeLeft] = useState(getTimeLeft(target));
@@ -44,8 +44,8 @@ const ComingSoon = () => {
     setLoading(true);
     try {
       const { error } = await supabase
-        .from("preregistrations" as any)
-        .insert([{ email: email.trim().toLowerCase(), role }] as any);
+        .from("preregistrations")
+        .insert([{ email: email.trim().toLowerCase(), role }]);
 
       if (error) {
         if (error.code === "23505") {
