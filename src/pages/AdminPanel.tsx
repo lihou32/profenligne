@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Users, BookOpen, DollarSign, TrendingUp, MoreHorizontal, Mail } from "lucide-react";
+import { Users, BookOpen, DollarSign, TrendingUp, MoreHorizontal, Mail, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -32,6 +32,24 @@ interface Preregistration {
 export default function AdminPanel() {
   const [preregistrations, setPreregistrations] = useState<Preregistration[]>([]);
   const [loadingPrereg, setLoadingPrereg] = useState(false);
+
+  const exportToCSV = () => {
+    if (preregistrations.length === 0) return;
+    const header = "Email,Rôle,Date d'inscription";
+    const rows = preregistrations.map((p) => {
+      const role = p.role === "student" ? "Élève" : "Tuteur";
+      const date = format(new Date(p.created_at), "dd/MM/yyyy HH:mm", { locale: fr });
+      return `${p.email},${role},${date}`;
+    });
+    const csv = [header, ...rows].join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `preinscrits_${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   useEffect(() => {
     const fetchPreregistrations = async () => {
@@ -89,6 +107,10 @@ export default function AdminPanel() {
                   Liste d'attente
                 </CardTitle>
                 <Badge variant="secondary">{preregistrations.length} inscrit(s)</Badge>
+                <Button variant="outline" size="sm" onClick={exportToCSV} disabled={preregistrations.length === 0}>
+                  <Download className="h-4 w-4 mr-1" />
+                  Exporter CSV
+                </Button>
               </div>
             </CardHeader>
             <CardContent className="p-0">
