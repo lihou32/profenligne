@@ -2,9 +2,11 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, BookOpen, Video, Bell, HelpCircle,
   LogOut, GraduationCap, Shield, Zap, Star, Crown,
-  DollarSign, ToggleLeft, CreditCard, UserCircle, Settings,
-  Bot,
+  DollarSign, CreditCard, Settings, Bot, Users,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { XPBadge } from "@/components/gamification/XPBadge";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup,
   SidebarGroupContent, SidebarGroupLabel, SidebarHeader,
@@ -23,6 +25,7 @@ const studentPrincipalNav = [
 const studentApprentissageNav = [
   { title: "Cours en direct", icon: Video, path: "/live" },
   { title: "AI Tutor", icon: Bot, path: "/ai-tutor" },
+  { title: "Trouver un prof", icon: Users, path: "/tutors" },
   { title: "Avis Profs", icon: Star, path: "/reviews" },
   { title: "Acheter des crédits", icon: CreditCard, path: "/credits" },
   { title: "Club Prestige", icon: Crown, path: "/pricing" },
@@ -38,6 +41,7 @@ const tutorActiviteNav = [
   { title: "Mes Revenus", icon: DollarSign, path: "/earnings" },
   { title: "Mes Avis", icon: Star, path: "/reviews" },
   { title: "Cours en direct", icon: Video, path: "/live" },
+  { title: "Classement profs", icon: Users, path: "/tutors" },
 ];
 
 const generalNav = [
@@ -48,8 +52,22 @@ const generalNav = [
 export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut, profile, hasRole } = useAuth();
+  const { signOut, profile, hasRole, user } = useAuth();
   const isTutor = hasRole("tutor");
+
+  // Fetch current user's XP
+  const { data: xpData } = useQuery({
+    queryKey: ["my-xp", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("user_xp")
+        .select("total_xp")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      return data?.total_xp ?? 0;
+    },
+  });
 
   const handleSignOut = async () => {
     try {
@@ -184,10 +202,14 @@ export function AppSidebar() {
           </Avatar>
           <div className="flex-1 min-w-0">
             <p className="truncate text-sm font-semibold text-sidebar-foreground">{displayName}</p>
-            <p className="truncate text-[10px] text-sidebar-foreground/35 flex items-center gap-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-success inline-block" />
-              {roleLabel}
-            </p>
+            {xpData !== undefined && xpData > 0 ? (
+              <XPBadge xp={xpData} size="sm" showLabel className="mt-0.5" />
+            ) : (
+              <p className="truncate text-[10px] text-sidebar-foreground/35 flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-success inline-block" />
+                {roleLabel}
+              </p>
+            )}
           </div>
         </Link>
         <SidebarMenu>
