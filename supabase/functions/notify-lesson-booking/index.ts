@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
       user_id: lesson.tutor_id,
       title: notifTitle,
       message: notifMessage,
-      type: "info",
+      type: "lesson",
       read: false,
     });
 

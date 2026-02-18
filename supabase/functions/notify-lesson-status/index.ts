@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
       user_id: lesson.student_id,
       title: notifTitle,
       message: notifMessage,
-      type: isConfirmed ? "success" : "warning",
+      type: "lesson",
       read: false,
     });
 
