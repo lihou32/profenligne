@@ -3,24 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Users, BookOpen, DollarSign, TrendingUp, MoreHorizontal, Mail, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-
-const stats = [
-  { label: "Utilisateurs", value: "1,234", icon: Users, change: "+12%" },
-  { label: "Cours ce mois", value: "456", icon: BookOpen, change: "+8%" },
-  { label: "Revenus", value: "12,450€", icon: DollarSign, change: "+15%" },
-  { label: "Taux de satisfaction", value: "94%", icon: TrendingUp, change: "+2%" },
-];
-
-const users = [
-  { id: 1, name: "Jean Dupont", email: "jean@email.com", role: "student", status: "active" },
-  { id: 2, name: "Dr. Martin", email: "martin@email.com", role: "tutor", status: "active" },
-  { id: 3, name: "Marie Curie", email: "marie@email.com", role: "student", status: "inactive" },
-  { id: 4, name: "Mr. Smith", email: "smith@email.com", role: "tutor", status: "active" },
-];
+import { useAdminStats } from "@/hooks/useAdminStats";
 
 interface Preregistration {
   id: string;
@@ -29,9 +17,49 @@ interface Preregistration {
   created_at: string;
 }
 
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+  change,
+  loading,
+}: {
+  label: string;
+  value: string;
+  icon: React.ElementType;
+  change: string | null;
+  loading: boolean;
+}) {
+  return (
+    <Card className="glass-card">
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <p className="text-sm text-muted-foreground">{label}</p>
+            {loading ? (
+              <Skeleton className="h-8 w-24" />
+            ) : (
+              <p className="text-2xl font-bold">{value}</p>
+            )}
+            {change !== null && (
+              <p className={`text-xs ${change.startsWith("+") ? "text-success" : "text-destructive"}`}>
+                {change}
+              </p>
+            )}
+          </div>
+          <div className="gradient-primary flex h-10 w-10 items-center justify-center rounded-xl">
+            <Icon className="h-5 w-5 text-primary-foreground" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function AdminPanel() {
   const [preregistrations, setPreregistrations] = useState<Preregistration[]>([]);
   const [loadingPrereg, setLoadingPrereg] = useState(false);
+  const { data: stats, isLoading: statsLoading } = useAdminStats();
 
   const exportToCSV = () => {
     if (preregistrations.length === 0) return;
@@ -64,6 +92,37 @@ export default function AdminPanel() {
     fetchPreregistrations();
   }, []);
 
+  const statsCards = [
+    {
+      label: "Utilisateurs",
+      value: stats ? stats.totalUsers.toLocaleString("fr-FR") : "—",
+      icon: Users,
+      change: null,
+    },
+    {
+      label: "Cours ce mois",
+      value: stats ? stats.lessonsThisMonth.toString() : "—",
+      icon: BookOpen,
+      change: stats?.lessonsChange != null
+        ? `${stats.lessonsChange >= 0 ? "+" : ""}${stats.lessonsChange}% vs mois dernier`
+        : null,
+    },
+    {
+      label: "Revenus",
+      value: stats ? `${stats.revenueThisMonth.toLocaleString("fr-FR")}€` : "—",
+      icon: DollarSign,
+      change: stats?.revenueChange != null
+        ? `${stats.revenueChange >= 0 ? "+" : ""}${stats.revenueChange}% vs mois dernier`
+        : null,
+    },
+    {
+      label: "Satisfaction",
+      value: stats ? `${stats.satisfactionPct}%` : "—",
+      icon: TrendingUp,
+      change: stats ? `Basé sur ${stats.reviewCount} avis` : null,
+    },
+  ];
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
@@ -72,28 +131,14 @@ export default function AdminPanel() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <Card key={stat.label} className="glass-card">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">{stat.label}</p>
-                  <p className="text-2xl font-bold">{stat.value}</p>
-                  <p className="text-xs text-success">{stat.change}</p>
-                </div>
-                <div className="gradient-primary flex h-10 w-10 items-center justify-center rounded-xl">
-                  <stat.icon className="h-5 w-5 text-primary-foreground" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {statsCards.map((stat) => (
+          <StatCard key={stat.label} {...stat} loading={statsLoading} />
         ))}
       </div>
 
       <Tabs defaultValue="preregistrations">
         <TabsList>
           <TabsTrigger value="preregistrations">Préinscrits</TabsTrigger>
-          <TabsTrigger value="users">Utilisateurs</TabsTrigger>
           <TabsTrigger value="tutors">Tuteurs</TabsTrigger>
           <TabsTrigger value="lessons">Cours</TabsTrigger>
         </TabsList>
@@ -106,18 +151,31 @@ export default function AdminPanel() {
                   <Mail className="h-5 w-5" />
                   Liste d'attente
                 </CardTitle>
-                <Badge variant="secondary">{preregistrations.length} inscrit(s)</Badge>
-                <Button variant="outline" size="sm" onClick={exportToCSV} disabled={preregistrations.length === 0}>
-                  <Download className="h-4 w-4 mr-1" />
-                  Exporter CSV
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary">{preregistrations.length} inscrit(s)</Badge>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={exportToCSV}
+                    disabled={preregistrations.length === 0}
+                  >
+                    <Download className="h-4 w-4 mr-1" />
+                    Exporter CSV
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="p-0">
               {loadingPrereg ? (
-                <p className="p-6 text-center text-muted-foreground">Chargement…</p>
+                <div className="p-6 space-y-3">
+                  {[...Array(4)].map((_, i) => (
+                    <Skeleton key={i} className="h-10 w-full" />
+                  ))}
+                </div>
               ) : preregistrations.length === 0 ? (
-                <p className="p-6 text-center text-muted-foreground">Aucun préinscrit pour le moment</p>
+                <p className="p-6 text-center text-muted-foreground">
+                  Aucun préinscrit pour le moment
+                </p>
               ) : (
                 <table className="w-full">
                   <thead>
@@ -144,47 +202,6 @@ export default function AdminPanel() {
                   </tbody>
                 </table>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="users" className="mt-4">
-          <Card className="glass-card">
-            <CardContent className="p-0">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b text-left text-sm text-muted-foreground">
-                    <th className="p-4">Nom</th>
-                    <th className="p-4">Email</th>
-                    <th className="p-4">Rôle</th>
-                    <th className="p-4">Statut</th>
-                    <th className="p-4"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map((user) => (
-                    <tr key={user.id} className="border-b last:border-0 hover:bg-muted/50">
-                      <td className="p-4 font-medium">{user.name}</td>
-                      <td className="p-4 text-sm text-muted-foreground">{user.email}</td>
-                      <td className="p-4">
-                        <Badge variant="secondary">
-                          {user.role === "student" ? "Étudiant" : "Tuteur"}
-                        </Badge>
-                      </td>
-                      <td className="p-4">
-                        <Badge className={user.status === "active" ? "bg-success" : "bg-muted-foreground"}>
-                          {user.status === "active" ? "Actif" : "Inactif"}
-                        </Badge>
-                      </td>
-                      <td className="p-4">
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             </CardContent>
           </Card>
         </TabsContent>
