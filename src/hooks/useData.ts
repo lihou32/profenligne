@@ -27,6 +27,21 @@ export function useCreateLesson() {
     mutationFn: async (lesson: TablesInsert<"lessons">) => {
       const { data, error } = await supabase.from("lessons").insert(lesson).select().single();
       if (error) throw error;
+
+      // Notify the tutor about the new booking (fire-and-forget)
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
+          supabase.functions
+            .invoke("notify-lesson-booking", {
+              body: { lessonId: data.id },
+              headers: { Authorization: `Bearer ${session.access_token}` },
+            })
+            .then(({ error: fnError }) => {
+              if (fnError) console.warn("Booking notification error:", fnError);
+            });
+        }
+      });
+
       return data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["lessons"] }),
