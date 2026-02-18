@@ -12,97 +12,131 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Validate cron secret to prevent unauthorized triggers
+    // Validate authorization: allow anon key (cron) or CRON_SECRET
     const authHeader = req.headers.get("Authorization");
     const cronSecret = Deno.env.get("CRON_SECRET");
-    if (cronSecret && (!authHeader || authHeader !== `Bearer ${cronSecret}`)) {
-      // Also allow Supabase anon key for scheduled invocations
-      const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
-      if (!authHeader || !anonKey || authHeader !== `Bearer ${anonKey}`) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+
+    const isValidCron = cronSecret && authHeader === `Bearer ${cronSecret}`;
+    const isValidAnon = anonKey && authHeader === `Bearer ${anonKey}`;
+
+    if (!isValidCron && !isValidAnon) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
+
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
-    if (!resendApiKey) {
-      throw new Error("RESEND_API_KEY not configured");
-    }
 
-    // Find lessons starting in the next 30 minutes that haven't been reminded
+    // Find lessons starting between 55 min and 65 min from now
+    // (gives a 10-min window so cron runs every 5-10 min without duplicates)
     const now = new Date();
-    const in30min = new Date(now.getTime() + 30 * 60 * 1000);
+    const in55min = new Date(now.getTime() + 55 * 60 * 1000);
+    const in65min = new Date(now.getTime() + 65 * 60 * 1000);
 
     const { data: lessons, error: lessonsError } = await supabaseAdmin
       .from("lessons")
-      .select("id, subject, topic, scheduled_at, student_id, tutor_id, status")
+      .select("id, subject, topic, scheduled_at, student_id, tutor_id, duration_minutes, status")
       .eq("status", "confirmed")
-      .gte("scheduled_at", now.toISOString())
-      .lte("scheduled_at", in30min.toISOString());
+      .gte("scheduled_at", in55min.toISOString())
+      .lte("scheduled_at", in65min.toISOString());
 
-    if (lessonsError) {
-      throw lessonsError;
-    }
+    if (lessonsError) throw lessonsError;
 
     if (!lessons || lessons.length === 0) {
       return new Response(
-        JSON.stringify({ message: "No upcoming lessons to remind", sent: 0 }),
+        JSON.stringify({ message: "No upcoming lessons to remind (1h window)", sent: 0 }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    let sentCount = 0;
+    let emailCount = 0;
+    let notifCount = 0;
 
     for (const lesson of lessons) {
-      // Get student and tutor profiles with emails
       const userIds = [lesson.student_id, lesson.tutor_id];
 
-      // Get profiles
       const { data: profiles } = await supabaseAdmin
         .from("profiles")
         .select("user_id, first_name, last_name, notify_lesson_reminder")
         .in("user_id", userIds);
 
-      // Get auth emails
-      const { data: { users }, error: usersError } = await supabaseAdmin.auth.admin.listUsers();
-      if (usersError) {
-        console.error("Error fetching users:", usersError);
-        continue;
-      }
+      const scheduledDate = new Date(lesson.scheduled_at);
+      const dateStr = scheduledDate.toLocaleDateString("fr-FR", {
+        weekday: "long", day: "numeric", month: "long",
+        timeZone: "Europe/Paris",
+      });
+      const timeStr = scheduledDate.toLocaleTimeString("fr-FR", {
+        hour: "2-digit", minute: "2-digit",
+        timeZone: "Europe/Paris",
+      });
 
-      const relevantUsers = users.filter((u) => userIds.includes(u.id));
+      for (const userId of userIds) {
+        const profile = profiles?.find((p) => p.user_id === userId);
 
-      for (const user of relevantUsers) {
-        const profile = profiles?.find((p) => p.user_id === user.id);
+        // Respect notification preference
+        if (profile && !profile.notify_lesson_reminder) continue;
 
-        // Skip if user disabled lesson reminders
-        if (profile && !profile.notify_lesson_reminder) {
-          continue;
-        }
-
-        if (!user.email) continue;
-
-        const isStudent = user.id === lesson.student_id;
-        const roleName = isStudent ? "élève" : "tuteur";
+        const isStudent = userId === lesson.student_id;
         const partnerProfile = profiles?.find(
           (p) => p.user_id === (isStudent ? lesson.tutor_id : lesson.student_id)
         );
         const partnerName = partnerProfile
           ? `${partnerProfile.first_name || ""} ${partnerProfile.last_name || ""}`.trim()
-          : "votre partenaire";
+          : isStudent ? "votre professeur" : "votre élève";
 
-        const scheduledDate = new Date(lesson.scheduled_at);
-        const timeStr = scheduledDate.toLocaleTimeString("fr-FR", {
-          hour: "2-digit",
-          minute: "2-digit",
-          timeZone: "Europe/Paris",
+        const firstName = profile?.first_name || (isStudent ? "Élève" : "Professeur");
+
+        // ── In-app notification ──────────────────────────────────────────────
+        const notifTitle = `Rappel — cours dans 1h : ${lesson.subject}`;
+        const notifMessage = `Votre cours de ${lesson.subject}${lesson.topic ? ` (${lesson.topic})` : ""} avec ${partnerName} commence à ${timeStr}. Pensez à rejoindre la salle à temps !`;
+
+        const { error: notifErr } = await supabaseAdmin.from("notifications").insert({
+          user_id: userId,
+          title: notifTitle,
+          message: notifMessage,
+          type: "info",
+          read: false,
         });
+
+        if (!notifErr) notifCount++;
+        else console.error(`Failed to create in-app notif for ${userId}:`, notifErr);
+
+        // ── Email ────────────────────────────────────────────────────────────
+        if (!resendApiKey) continue;
+
+        const { data: { user: authUser }, error: userErr } = await supabaseAdmin.auth.admin.getUserById(userId);
+        if (userErr || !authUser?.email) {
+          console.error(`Email not found for user ${userId}:`, userErr);
+          continue;
+        }
+
+        const emailHtml = `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #1a1a2e;">
+            <div style="background: linear-gradient(135deg, #7c3aed, #a855f7); padding: 32px; border-radius: 16px 16px 0 0; text-align: center;">
+              <h1 style="color: white; margin: 0; font-size: 24px;">⏰ Rappel — cours dans 1 heure</h1>
+            </div>
+            <div style="background: #f9fafb; padding: 32px; border-radius: 0 0 16px 16px; border: 1px solid #e5e7eb; border-top: none;">
+              <p style="font-size: 16px;">Bonjour <strong>${firstName}</strong>,</p>
+              <p style="font-size: 15px; color: #4b5563;">
+                Votre cours de <strong>${lesson.subject}</strong>${lesson.topic ? ` (${lesson.topic})` : ""} avec <strong>${partnerName}</strong> commence dans <strong>1 heure</strong>.
+              </p>
+              <div style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin: 20px 0;">
+                <p style="margin: 0 0 6px; font-size: 16px; font-weight: bold;">📚 ${lesson.subject}${lesson.topic ? ` — ${lesson.topic}` : ""}</p>
+                <p style="margin: 0 0 6px; font-size: 14px; color: #4b5563;">📅 ${dateStr} à <strong>${timeStr}</strong></p>
+                <p style="margin: 0; font-size: 14px; color: #4b5563;">⏱ ${lesson.duration_minutes} minutes avec <strong>${partnerName}</strong></p>
+              </div>
+              <p style="font-size: 14px; color: #4b5563;">Connectez-vous quelques minutes avant l'heure pour rejoindre la salle de cours.</p>
+              <p style="color: #9ca3af; font-size: 13px; margin-top: 24px;">À tout de suite,<br/>L'équipe Prof en Ligne</p>
+            </div>
+          </div>
+        `;
 
         const emailRes = await fetch("https://api.resend.com/emails", {
           method: "POST",
@@ -111,38 +145,34 @@ Deno.serve(async (req) => {
             Authorization: `Bearer ${resendApiKey}`,
           },
           body: JSON.stringify({
-            from: "TutorApp <onboarding@resend.dev>",
-            to: [user.email],
-            subject: `Rappel : cours de ${lesson.subject} à ${timeStr}`,
-            html: `
-              <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2>Rappel de cours 📚</h2>
-                <p>Bonjour ${profile?.first_name || roleName},</p>
-                <p>Votre cours de <strong>${lesson.subject}</strong>${lesson.topic ? ` (${lesson.topic})` : ""} commence à <strong>${timeStr}</strong> avec <strong>${partnerName}</strong>.</p>
-                <p>Connectez-vous à la plateforme pour rejoindre la salle de cours.</p>
-                <br/>
-                <p>À bientôt !</p>
-              </div>
-            `,
+            from: "Prof en Ligne <onboarding@resend.dev>",
+            to: [authUser.email],
+            subject: `⏰ Rappel : cours de ${lesson.subject} à ${timeStr} (dans 1h)`,
+            html: emailHtml,
           }),
         });
 
         if (emailRes.ok) {
-          sentCount++;
-          console.log(`Reminder sent to ${user.email} for lesson ${lesson.id}`);
+          emailCount++;
+          console.log(`1h reminder email sent to ${authUser.email} for lesson ${lesson.id}`);
         } else {
           const errBody = await emailRes.text();
-          console.error(`Failed to send to ${user.email}:`, errBody);
+          console.error(`Failed to send reminder to ${authUser.email}:`, errBody);
         }
       }
     }
 
     return new Response(
-      JSON.stringify({ message: `Reminders sent`, sent: sentCount }),
+      JSON.stringify({
+        message: "1-hour reminders processed",
+        lessonsFound: lessons.length,
+        emailsSent: emailCount,
+        inAppNotifications: notifCount,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error:", error);
+    console.error("Error in send-lesson-reminders:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
