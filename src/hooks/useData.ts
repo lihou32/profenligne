@@ -39,6 +39,23 @@ export function useUpdateLesson() {
     mutationFn: async ({ id, ...updates }: { id: string } & Partial<Tables<"lessons">>) => {
       const { data, error } = await supabase.from("lessons").update(updates).eq("id", id).select().single();
       if (error) throw error;
+
+      // Trigger notification when tutor accepts or refuses a lesson
+      const newStatus = updates.status;
+      if (newStatus === "confirmed" || newStatus === "cancelled") {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          supabase.functions
+            .invoke("notify-lesson-status", {
+              body: { lessonId: id, newStatus },
+              headers: { Authorization: `Bearer ${session.access_token}` },
+            })
+            .then(({ error: fnError }) => {
+              if (fnError) console.warn("Notification function error:", fnError);
+            });
+        }
+      }
+
       return data;
     },
     onSuccess: () => {
