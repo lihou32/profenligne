@@ -11,6 +11,7 @@ import { fr } from "date-fns/locale";
 import { useAdminStats } from "@/hooks/useAdminStats";
 import { AdminCharts } from "@/components/admin/AdminCharts";
 import { AdminTutorsTab } from "@/components/admin/AdminTutorsTab";
+import { AdminLessonsTab } from "@/components/admin/AdminLessonsTab";
 
 interface Preregistration {
   id: string;
@@ -215,11 +216,7 @@ export default function AdminPanel() {
         </TabsContent>
 
         <TabsContent value="lessons" className="mt-4">
-          <Card className="glass-card">
-            <CardContent className="p-6 text-center text-muted-foreground">
-              Gestion des cours — sera implémenté avec le backend
-            </CardContent>
-          </Card>
+          <AdminLessonsTab />
         </TabsContent>
       </Tabs>
     </div>
