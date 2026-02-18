@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.weekly-preregistrations-report]
 verify_jwt = false
+
+[functions.notify-lesson-status]
+verify_jwt = false
