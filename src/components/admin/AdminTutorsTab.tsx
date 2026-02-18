@@ -1,10 +1,18 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Star, Users } from "lucide-react";
+import { Star, Users, ChevronDown, Wifi, WifiOff, Clock } from "lucide-react";
+import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 
 interface TutorWithProfile {
   id: string;
@@ -48,14 +56,44 @@ function useAdminTutors() {
   });
 }
 
-const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  online: { label: "En ligne", variant: "default" },
-  offline: { label: "Hors ligne", variant: "secondary" },
-  busy: { label: "Occupé", variant: "destructive" },
+function useUpdateTutorStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ tutorId, status }: { tutorId: string; status: string }) => {
+      const { error } = await supabase
+        .from("tutors")
+        .update({ status })
+        .eq("id", tutorId);
+      if (error) throw error;
+    },
+    onSuccess: (_, { status }) => {
+      qc.invalidateQueries({ queryKey: ["admin-tutors"] });
+      const labels: Record<string, string> = {
+        online: "En ligne",
+        offline: "Hors ligne",
+        busy: "Occupé",
+        suspended: "Suspendu",
+      };
+      toast.success(`Statut mis à jour : ${labels[status] ?? status}`);
+    },
+    onError: () => {
+      toast.error("Impossible de mettre à jour le statut");
+    },
+  });
+}
+
+const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: React.ElementType }> = {
+  online:    { label: "En ligne",   variant: "default",     icon: Wifi },
+  offline:   { label: "Hors ligne", variant: "secondary",   icon: WifiOff },
+  busy:      { label: "Occupé",     variant: "destructive", icon: Clock },
+  suspended: { label: "Suspendu",   variant: "outline",     icon: WifiOff },
 };
+
+const allStatuses = ["online", "offline", "busy", "suspended"] as const;
 
 export function AdminTutorsTab() {
   const { data: tutors, isLoading } = useAdminTutors();
+  const { mutate: updateStatus, isPending } = useUpdateTutorStatus();
 
   if (isLoading) {
     return (
@@ -99,6 +137,7 @@ export function AdminTutorsTab() {
                 <th className="p-4">Note</th>
                 <th className="p-4">Avis</th>
                 <th className="p-4">Matières</th>
+                <th className="p-4">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -113,10 +152,19 @@ export function AdminTutorsTab() {
                   .join("")
                   .toUpperCase()
                   .slice(0, 2);
-                const status = statusConfig[tutor.status] ?? { label: tutor.status, variant: "outline" as const };
+                const status = statusConfig[tutor.status] ?? {
+                  label: tutor.status,
+                  variant: "outline" as const,
+                  icon: WifiOff,
+                };
+                const StatusIcon = status.icon;
 
                 return (
-                  <tr key={tutor.id} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
+                  <tr
+                    key={tutor.id}
+                    className="border-b last:border-0 hover:bg-muted/50 transition-colors"
+                  >
+                    {/* Tuteur */}
                     <td className="p-4">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8">
@@ -126,21 +174,38 @@ export function AdminTutorsTab() {
                         <span className="font-medium text-sm">{fullName}</span>
                       </div>
                     </td>
+
+                    {/* Statut */}
                     <td className="p-4">
-                      <Badge variant={status.variant}>{status.label}</Badge>
+                      <Badge variant={status.variant} className="flex items-center gap-1 w-fit">
+                        <StatusIcon className="h-3 w-3" />
+                        {status.label}
+                      </Badge>
                     </td>
+
+                    {/* Tarif */}
                     <td className="p-4 text-sm">
-                      {tutor.hourly_rate != null ? `${Number(tutor.hourly_rate).toFixed(0)} €` : "—"}
+                      {tutor.hourly_rate != null
+                        ? `${Number(tutor.hourly_rate).toFixed(0)} €`
+                        : "—"}
                     </td>
+
+                    {/* Note */}
                     <td className="p-4">
                       <div className="flex items-center gap-1 text-sm">
                         <Star className="h-3.5 w-3.5 fill-primary text-primary" />
-                        <span>{tutor.rating != null ? Number(tutor.rating).toFixed(1) : "—"}</span>
+                        <span>
+                          {tutor.rating != null ? Number(tutor.rating).toFixed(1) : "—"}
+                        </span>
                       </div>
                     </td>
+
+                    {/* Avis */}
                     <td className="p-4 text-sm text-muted-foreground">
                       {tutor.total_reviews ?? 0} avis
                     </td>
+
+                    {/* Matières */}
                     <td className="p-4">
                       <div className="flex flex-wrap gap-1">
                         {(tutor.subjects || []).slice(0, 3).map((s) => (
@@ -154,6 +219,43 @@ export function AdminTutorsTab() {
                           </Badge>
                         )}
                       </div>
+                    </td>
+
+                    {/* Actions */}
+                    <td className="p-4">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 gap-1 text-xs"
+                            disabled={isPending}
+                          >
+                            Modifier statut
+                            <ChevronDown className="h-3.5 w-3.5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {allStatuses
+                            .filter((s) => s !== tutor.status)
+                            .map((s) => {
+                              const cfg = statusConfig[s];
+                              const Icon = cfg.icon;
+                              return (
+                                <DropdownMenuItem
+                                  key={s}
+                                  onClick={() =>
+                                    updateStatus({ tutorId: tutor.id, status: s })
+                                  }
+                                  className="flex items-center gap-2 text-sm cursor-pointer"
+                                >
+                                  <Icon className="h-3.5 w-3.5" />
+                                  {cfg.label}
+                                </DropdownMenuItem>
+                              );
+                            })}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </td>
                   </tr>
                 );
