@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useAdminStats } from "@/hooks/useAdminStats";
+import { AdminCharts } from "@/components/admin/AdminCharts";
 
 interface Preregistration {
   id: string;
@@ -135,6 +136,8 @@ export default function AdminPanel() {
           <StatCard key={stat.label} {...stat} loading={statsLoading} />
         ))}
       </div>
+
+      <AdminCharts />
 
       <Tabs defaultValue="preregistrations">
         <TabsList>
