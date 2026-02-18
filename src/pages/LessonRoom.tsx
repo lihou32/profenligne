@@ -13,6 +13,7 @@ import {
   MessageCircle,
   Send,
   Phone,
+  PenLine,
 } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useWebRTC } from "@/hooks/useWebRTC";
@@ -20,6 +21,7 @@ import { useRoomChat } from "@/hooks/useRoomChat";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Whiteboard } from "@/components/lessons/Whiteboard";
 
 export default function LessonRoom() {
   const { id } = useParams();
@@ -47,6 +49,7 @@ export default function LessonRoom() {
   const [videoOn, setVideoOn] = useState(true);
   const [micOn, setMicOn] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
+  const [whiteboardOpen, setWhiteboardOpen] = useState(false);
   const [chatInput, setChatInput] = useState("");
   const [callStarted, setCallStarted] = useState(false);
 
@@ -264,10 +267,25 @@ export default function LessonRoom() {
             )}
           </Button>
           <Button
+            variant={whiteboardOpen ? "secondary" : "outline"}
+            size="icon"
+            className="h-12 w-12 rounded-full"
+            onClick={() => {
+              setWhiteboardOpen(!whiteboardOpen);
+              if (chatOpen) setChatOpen(false);
+            }}
+            title="Tableau blanc"
+          >
+            <PenLine className="h-5 w-5" />
+          </Button>
+          <Button
             variant="outline"
             size="icon"
             className="h-12 w-12 rounded-full"
-            onClick={() => setChatOpen(!chatOpen)}
+            onClick={() => {
+              setChatOpen(!chatOpen);
+              if (whiteboardOpen) setWhiteboardOpen(false);
+            }}
           >
             <MessageCircle className="h-5 w-5" />
           </Button>
@@ -314,6 +332,18 @@ export default function LessonRoom() {
                 <Send className="h-4 w-4" />
               </Button>
             </form>
+          </div>
+        </Card>
+      )}
+
+      {/* Whiteboard panel */}
+      {whiteboardOpen && (
+        <Card className="glass-card flex flex-col" style={{ width: "520px" }}>
+          <div className="border-b p-3">
+            <h3 className="text-sm font-semibold">Tableau blanc collaboratif</h3>
+          </div>
+          <div className="flex-1 p-3 min-h-0">
+            <Whiteboard roomId={roomId} />
           </div>
         </Card>
       )}
