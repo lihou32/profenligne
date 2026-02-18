@@ -1,5 +1,7 @@
 import { useAuth } from "@/hooks/useAuth";
 import { useDashboardStats, useTutors } from "@/hooks/useData";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen, Clock, TrendingUp, Video, Star, CalendarDays, Sparkles, ArrowRight, Users, Trophy, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,12 +13,26 @@ import { BookLessonDialog } from "@/components/lessons/BookLessonDialog";
 import { ActiveLessonBanner } from "@/components/lessons/ActiveLessonBanner";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
+import { XPBadge } from "@/components/gamification/XPBadge";
 
 export default function StudentDashboard() {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const { data: stats, isLoading } = useDashboardStats();
   const { data: tutors } = useTutors();
   const displayName = profile?.first_name || "Étudiant";
+
+  const { data: myXp = 0 } = useQuery({
+    queryKey: ["my-xp", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("user_xp")
+        .select("total_xp")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      return data?.total_xp ?? 0;
+    },
+  });
 
   // Cours actif en ce moment (confirmed ou in_progress commencé il y a moins de 2h)
   const activeLesson = (stats?.upcomingLessons || []).find((l) => {
@@ -40,7 +56,10 @@ export default function StudentDashboard() {
           <h1 className="text-3xl font-bold tracking-tight font-display">
             Bonjour, <span className="gradient-text">{displayName}</span> 👋
           </h1>
-          <p className="text-muted-foreground mt-1">Voici un résumé de votre activité</p>
+          <div className="mt-1.5 flex items-center gap-3">
+            <p className="text-muted-foreground text-sm">Voici un résumé de votre activité</p>
+            {myXp > 0 && <XPBadge xp={myXp} size="sm" showProgress />}
+          </div>
         </div>
         <BookLessonDialog />
       </div>
@@ -156,10 +175,13 @@ export default function StudentDashboard() {
         </Card>
 
         <Card className="glass-card">
-          <CardHeader className="pb-4">
+          <CardHeader className="pb-4 flex flex-row items-center justify-between">
             <CardTitle className="text-lg font-display flex items-center gap-2">
-              <Users className="h-5 w-5 text-primary" /> Tuteurs disponibles
+              <Users className="h-5 w-5 text-primary" /> Trouver un prof
             </CardTitle>
+            <Button variant="ghost" size="sm" asChild className="text-primary hover:text-primary/80">
+              <Link to="/tutors" className="flex items-center gap-1">Voir tout <ArrowRight className="h-3 w-3" /></Link>
+            </Button>
           </CardHeader>
           <CardContent className="space-y-3">
             {(!tutors || tutors.length === 0) && (
@@ -168,11 +190,11 @@ export default function StudentDashboard() {
                 <p className="text-sm text-muted-foreground">Aucun tuteur inscrit</p>
               </div>
             )}
-            {(tutors || []).slice(0, 4).map((tutor: any, i: number) => {
+            {(tutors || []).filter((t: any) => t.status === "online").slice(0, 4).map((tutor: any, i: number) => {
               const initial = (tutor.profiles?.first_name?.[0] || "T").toUpperCase();
               const name = tutor.profiles?.first_name ? `${tutor.profiles.first_name} ${tutor.profiles.last_name || ""}` : "Tuteur";
               return (
-                <div key={tutor.id} className="flex items-center gap-3 rounded-xl border border-border/30 p-3.5 transition-all duration-200 hover:bg-secondary/50 hover:border-primary/20 animate-fade-in" style={{ animationDelay: `${i * 80}ms` }}>
+                <Link key={tutor.id} to={`/tutors/${tutor.user_id}`} className="flex items-center gap-3 rounded-xl border border-border/30 p-3.5 transition-all duration-200 hover:bg-secondary/50 hover:border-primary/20 animate-fade-in" style={{ animationDelay: `${i * 80}ms` }}>
                   <Avatar className="h-10 w-10">
                     <AvatarFallback className="gradient-primary text-primary-foreground text-sm font-bold">{initial}</AvatarFallback>
                   </Avatar>
@@ -180,10 +202,10 @@ export default function StudentDashboard() {
                     <p className="text-sm font-semibold truncate">{name}</p>
                     <p className="text-xs text-muted-foreground truncate">{(tutor.subjects || []).join(", ") || "—"}</p>
                   </div>
-                  <div className="flex items-center gap-1 text-sm font-semibold text-gold">
+                  <div className="flex items-center gap-1 text-sm font-semibold text-[hsl(var(--gold))]">
                     <Star className="h-3.5 w-3.5 fill-current" />{tutor.rating || "—"}
                   </div>
-                </div>
+                </Link>
               );
             })}
           </CardContent>

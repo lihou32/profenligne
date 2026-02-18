@@ -29,6 +29,7 @@ import AITutor from "./pages/AITutor";
 import Profile from "./pages/Profile";
 import SettingsPage from "./pages/Settings";
 import TutorProfile from "./pages/TutorProfile";
+import Tutors from "./pages/Tutors";
 
 const queryClient = new QueryClient();
 
@@ -85,6 +86,7 @@ function AppRoutes() {
         <Route path="/ai-tutor" element={<AITutor />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/tutors" element={<Tutors />} />
         <Route path="/tutors/:id" element={<TutorProfile />} />
         <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminPanel /></ProtectedRoute>} />
         <Route path="/room/:id" element={<LessonRoom />} />
