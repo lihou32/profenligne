@@ -1,9 +1,10 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Star, Send } from "lucide-react";
+import { Star, Send, ExternalLink } from "lucide-react";
 import { useTutors } from "@/hooks/useData";
 import { useTutorReviews, useCreateReview } from "@/hooks/useData";
 import { useAuth } from "@/hooks/useAuth";
@@ -24,6 +25,7 @@ function StarRating({ rating, onRate, interactive = false }: { rating: number; o
 }
 
 export default function TutorReviews() {
+  const navigate = useNavigate();
   const { data: tutors, isLoading: loadingTutors } = useTutors();
   const { data: reviews, isLoading: loadingReviews } = useTutorReviews();
   const createReview = useCreateReview();
@@ -107,13 +109,23 @@ export default function TutorReviews() {
                     {(tutor.subjects || []).join(", ")}
                   </p>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSelectedTutor(selectedTutor === tutor.id ? null : tutor.id)}
-                >
-                  Donner un avis
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate(`/tutors/${tutor.user_id}`)}
+                  >
+                    <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
+                    Voir le profil
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedTutor(selectedTutor === tutor.id ? null : tutor.id)}
+                  >
+                    Donner un avis
+                  </Button>
+                </div>
               </CardHeader>
 
               {selectedTutor === tutor.id && (
