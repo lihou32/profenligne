@@ -8,6 +8,7 @@ import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { BookLessonDialog } from "@/components/lessons/BookLessonDialog";
+import { ActiveLessonBanner } from "@/components/lessons/ActiveLessonBanner";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 
@@ -16,6 +17,14 @@ export default function StudentDashboard() {
   const { data: stats, isLoading } = useDashboardStats();
   const { data: tutors } = useTutors();
   const displayName = profile?.first_name || "Étudiant";
+
+  // Cours actif en ce moment (confirmed ou in_progress commencé il y a moins de 2h)
+  const activeLesson = (stats?.upcomingLessons || []).find((l) => {
+    const start = new Date(l.scheduled_at).getTime();
+    const now = Date.now();
+    const twoHours = 2 * 60 * 60 * 1000;
+    return l.status === "in_progress" || (l.status === "confirmed" && now >= start - 5 * 60 * 1000 && now < start + twoHours);
+  });
 
   const statCards = [
     { label: "Heures de cours", value: stats?.totalHours || "0", icon: Clock, color: "from-primary to-info" },
@@ -35,6 +44,9 @@ export default function StudentDashboard() {
         </div>
         <BookLessonDialog />
       </div>
+
+      {/* Cours actif — banner prioritaire */}
+      {activeLesson && <ActiveLessonBanner lesson={activeLesson} role="student" />}
 
       <div className="gradient-hero rounded-2xl p-6 md:p-8 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-transparent to-primary/10" />

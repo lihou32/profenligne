@@ -15,6 +15,7 @@ import { fr } from "date-fns/locale";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useUpdateLesson } from "@/hooks/useData";
 import { toast } from "sonner";
+import { ActiveLessonBanner } from "@/components/lessons/ActiveLessonBanner";
 
 export default function TutorDashboard() {
   const { profile } = useAuth();
@@ -28,6 +29,14 @@ export default function TutorDashboard() {
 
   const pendingLessons = (lessons || []).filter((l: any) => l.status === "pending");
   const upcomingLessons = (lessons || []).filter((l: any) => ["confirmed", "in_progress"].includes(l.status));
+
+  // Cours actif maintenant (démarré il y a moins de 2h ou en cours)
+  const activeLesson = upcomingLessons.find((l: any) => {
+    const start = new Date(l.scheduled_at).getTime();
+    const now = Date.now();
+    const twoHours = 2 * 60 * 60 * 1000;
+    return l.status === "in_progress" || (l.status === "confirmed" && now >= start - 5 * 60 * 1000 && now < start + twoHours);
+  });
 
   const handleToggleStatus = () => {
     updateStatus.mutate(isOnline ? "offline" : "online");
@@ -78,6 +87,9 @@ export default function TutorDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Cours actif — banner prioritaire */}
+      {activeLesson && <ActiveLessonBanner lesson={activeLesson} role="tutor" />}
 
       {/* Hero Banner */}
       <div className="gradient-hero rounded-2xl p-6 md:p-8 relative overflow-hidden">
