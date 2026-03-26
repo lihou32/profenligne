@@ -12,6 +12,7 @@ import { useAdminStats } from "@/hooks/useAdminStats";
 import { AdminCharts } from "@/components/admin/AdminCharts";
 import { AdminTutorsTab } from "@/components/admin/AdminTutorsTab";
 import { AdminLessonsTab } from "@/components/admin/AdminLessonsTab";
+import { AdminFinancialProjections } from "@/components/admin/AdminFinancialProjections";
 
 interface Preregistration {
   id: string;
@@ -146,6 +147,7 @@ export default function AdminPanel() {
           <TabsTrigger value="preregistrations">Préinscrits</TabsTrigger>
           <TabsTrigger value="tutors">Tuteurs</TabsTrigger>
           <TabsTrigger value="lessons">Cours</TabsTrigger>
+          <TabsTrigger value="projections">Projections</TabsTrigger>
         </TabsList>
 
         <TabsContent value="preregistrations" className="mt-4">
@@ -217,6 +219,10 @@ export default function AdminPanel() {
 
         <TabsContent value="lessons" className="mt-4">
           <AdminLessonsTab />
+        </TabsContent>
+
+        <TabsContent value="projections" className="mt-4">
+          <AdminFinancialProjections />
         </TabsContent>
       </Tabs>
     </div>
