@@ -147,6 +147,7 @@ export default function AdminPanel() {
           <TabsTrigger value="preregistrations">Préinscrits</TabsTrigger>
           <TabsTrigger value="tutors">Tuteurs</TabsTrigger>
           <TabsTrigger value="lessons">Cours</TabsTrigger>
+          <TabsTrigger value="projections">Projections</TabsTrigger>
         </TabsList>
 
         <TabsContent value="preregistrations" className="mt-4">
