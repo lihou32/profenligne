@@ -220,6 +220,10 @@ export default function AdminPanel() {
         <TabsContent value="lessons" className="mt-4">
           <AdminLessonsTab />
         </TabsContent>
+
+        <TabsContent value="projections" className="mt-4">
+          <AdminFinancialProjections />
+        </TabsContent>
       </Tabs>
     </div>
   );
