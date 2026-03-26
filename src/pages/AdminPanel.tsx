@@ -12,6 +12,7 @@ import { useAdminStats } from "@/hooks/useAdminStats";
 import { AdminCharts } from "@/components/admin/AdminCharts";
 import { AdminTutorsTab } from "@/components/admin/AdminTutorsTab";
 import { AdminLessonsTab } from "@/components/admin/AdminLessonsTab";
+import { AdminFinancialProjections } from "@/components/admin/AdminFinancialProjections";
 
 interface Preregistration {
   id: string;

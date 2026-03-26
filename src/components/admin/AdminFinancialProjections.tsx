@@ -204,7 +204,7 @@ export function AdminFinancialProjections() {
                   {loyaltyPacks.map((p) => (
                     <tr key={p.pack} className="border-b last:border-0 hover:bg-muted/50">
                       <td className="p-3 font-medium">{p.pack}</td>
-                      <td className="p-3 text-right text-green-400">{p.bonus}</td>
+                      <td className="p-3 text-right text-accent">{p.bonus}</td>
                       <td className="p-3 text-right font-semibold">{p.total}</td>
                     </tr>
                   ))}
